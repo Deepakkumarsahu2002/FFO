@@ -1,0 +1,15 @@
+# dependencies
+Frontend/node_modules/
+Frontend/.vite/
+Frontend/dist/
+
+# env files
+Frontend/.env
+Frontend/.env.*
+
+# OS/editor
+.DS_Store
+Thumbs.db
+
+# logs
+npm-debug.log*

@@ -1,0 +1,188 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Flowers Forever design system.
+ * Palette: deep burgundy/wine, warm cream, soft blush, dark charcoal, white,
+ * subtle green accents. All colors in oklch, all exposed as semantic tokens.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", "Plus Jakarta Sans", ui-sans-serif, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+
+  --color-cream: var(--cream);
+  --color-blush: var(--blush);
+  --color-wine: var(--wine);
+  --color-wine-deep: var(--wine-deep);
+  --color-charcoal: var(--charcoal);
+  --color-leaf: var(--leaf);
+  --color-gold: var(--gold);
+  --color-sale: var(--sale);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --shadow-card: 0 1px 2px oklch(0.25 0.05 15 / 0.06), 0 8px 24px oklch(0.25 0.05 15 / 0.07);
+  --shadow-lift: 0 12px 40px oklch(0.25 0.05 15 / 0.14);
+  --shadow-bar: 0 -2px 18px oklch(0.25 0.05 15 / 0.08);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  --background: oklch(0.995 0.004 90);
+  --foreground: oklch(0.24 0.012 30);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.24 0.012 30);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.24 0.012 30);
+
+  --primary: oklch(0.37 0.128 12);
+  --primary-foreground: oklch(0.985 0.008 85);
+  --secondary: oklch(0.955 0.018 70);
+  --secondary-foreground: oklch(0.32 0.09 15);
+  --muted: oklch(0.962 0.012 75);
+  --muted-foreground: oklch(0.52 0.02 35);
+  --accent: oklch(0.93 0.035 15);
+  --accent-foreground: oklch(0.33 0.1 14);
+  --destructive: oklch(0.55 0.21 27);
+  --destructive-foreground: oklch(0.99 0.005 85);
+  --border: oklch(0.905 0.012 60);
+  --input: oklch(0.9 0.012 60);
+  --ring: oklch(0.37 0.128 12);
+
+  --cream: oklch(0.968 0.018 82);
+  --blush: oklch(0.93 0.035 15);
+  --wine: oklch(0.37 0.128 12);
+  --wine-deep: oklch(0.27 0.095 13);
+  --charcoal: oklch(0.24 0.012 30);
+  --leaf: oklch(0.52 0.08 150);
+  --gold: oklch(0.76 0.11 80);
+  --sale: oklch(0.55 0.19 28);
+
+  --chart-1: oklch(0.37 0.128 12);
+  --chart-2: oklch(0.52 0.08 150);
+  --chart-3: oklch(0.76 0.11 80);
+  --chart-4: oklch(0.7 0.09 15);
+  --chart-5: oklch(0.45 0.05 40);
+
+  --sidebar: oklch(0.27 0.095 13);
+  --sidebar-foreground: oklch(0.96 0.012 80);
+  --sidebar-primary: oklch(0.76 0.11 80);
+  --sidebar-primary-foreground: oklch(0.24 0.012 30);
+  --sidebar-accent: oklch(0.33 0.1 14);
+  --sidebar-accent-foreground: oklch(0.96 0.012 80);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.76 0.11 80);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+  }
+}
+
+@utility container-x {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 88rem;
+  padding-inline: 1rem;
+}
+
+@utility section-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+@utility hide-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+}
+
+@utility input-base {
+  height: 2.75rem;
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding-inline: 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  &:focus {
+    border-color: var(--primary);
+  }
+}
+
