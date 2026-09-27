@@ -36,7 +36,8 @@ const ACCOUNT = [
   { label: "My Orders", to: "/orders" },
   { label: "Wishlist", to: "/wishlist" },
   { label: "Cart", to: "/cart" },
-  { label: "Login", to: "/login" },
+  { label: "Create account", to: "/register" },
+  { label: "Log in", to: "/login" },
 ];
 
 export function Footer() {

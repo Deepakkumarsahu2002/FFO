@@ -65,11 +65,18 @@ export interface User {
   phone: string;
 }
 
+export interface RegisteredUser extends User {
+  password: string;
+}
+
 interface AccountState {
   user: User | null;
   addresses: Address[];
   orders: Order[];
+  registeredUsers: RegisteredUser[];
   login: (user: User) => void;
+  register: (input: Omit<RegisteredUser, "email"> & { email: string; password: string }) => User | null;
+  loginWithEmailAndPassword: (email: string, password: string) => boolean;
   logout: () => void;
   addAddress: (a: Omit<Address, "id">) => Address;
   removeAddress: (id: string) => void;
@@ -84,8 +91,41 @@ export const useAccount = create<AccountState>()(
       user: null,
       addresses: [],
       orders: [],
+      registeredUsers: [],
 
       login: (user) => set({ user }),
+      register: ({ name, email, phone, password }) => {
+        const normalizedEmail = email.trim().toLowerCase();
+        if (!name || !/^\S+@\S+\.\S+$/.test(normalizedEmail) || phone.length !== 10 || password.length < 6) {
+          return null;
+        }
+
+        if (get().registeredUsers.some((u) => u.email.toLowerCase() === normalizedEmail)) {
+          return null;
+        }
+
+        const user = { name, email: normalizedEmail, phone };
+        set((state) => ({
+          user,
+          registeredUsers: [{ ...user, password }, ...state.registeredUsers],
+        }));
+        return user;
+      },
+      loginWithEmailAndPassword: (email, password) => {
+        const normalizedEmail = email.trim().toLowerCase();
+        const match = get().registeredUsers.find(
+          (u) => u.email.toLowerCase() === normalizedEmail && u.password === password,
+        );
+
+        if (!match) {
+          return false;
+        }
+
+        set({
+          user: { name: match.name, email: match.email, phone: match.phone },
+        });
+        return true;
+      },
       logout: () => set({ user: null }),
 
       addAddress: (a) => {

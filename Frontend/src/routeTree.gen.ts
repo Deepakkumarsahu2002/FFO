@@ -17,11 +17,13 @@ import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as FfAdminRouteImport } from './routes/ff-admin'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as RefundRouteImport } from './routes/refund'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WishlistRouteImport } from './routes/wishlist'
@@ -68,6 +70,11 @@ const FfAdminRoute = FfAdminRouteImport.update({
   path: '/ff-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -91,6 +98,11 @@ const ProductsRoute = ProductsRouteImport.update({
 const RefundRoute = RefundRouteImport.update({
   id: '/refund',
   path: '/refund',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -128,11 +140,13 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
   '/ff-admin': typeof FfAdminRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
   '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRoute
   '/refund': typeof RefundRoute
+  '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
   '/terms': typeof TermsRoute
   '/wishlist': typeof WishlistRoute
@@ -148,11 +162,13 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
   '/ff-admin': typeof FfAdminRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
   '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRoute
   '/refund': typeof RefundRoute
+  '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
   '/terms': typeof TermsRoute
   '/wishlist': typeof WishlistRoute
@@ -169,11 +185,13 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
   '/ff-admin': typeof FfAdminRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/orders': typeof OrdersRoute
   '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRoute
   '/refund': typeof RefundRoute
+  '/register': typeof RegisterRoute
   '/search': typeof SearchRoute
   '/terms': typeof TermsRoute
   '/wishlist': typeof WishlistRoute
@@ -191,11 +209,13 @@ export interface FileRouteTypes {
     | '/contact'
     | '/faq'
     | '/ff-admin'
+    | '/forgot-password'
     | '/login'
     | '/orders'
     | '/privacy'
     | '/products'
     | '/refund'
+    | '/register'
     | '/search'
     | '/terms'
     | '/wishlist'
@@ -211,11 +231,13 @@ export interface FileRouteTypes {
     | '/contact'
     | '/faq'
     | '/ff-admin'
+    | '/forgot-password'
     | '/login'
     | '/orders'
     | '/privacy'
     | '/products'
     | '/refund'
+    | '/register'
     | '/search'
     | '/terms'
     | '/wishlist'
@@ -231,11 +253,13 @@ export interface FileRouteTypes {
     | '/contact'
     | '/faq'
     | '/ff-admin'
+    | '/forgot-password'
     | '/login'
     | '/orders'
     | '/privacy'
     | '/products'
     | '/refund'
+    | '/register'
     | '/search'
     | '/terms'
     | '/wishlist'
@@ -252,11 +276,13 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   FaqRoute: typeof FaqRoute
   FfAdminRoute: typeof FfAdminRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   OrdersRoute: typeof OrdersRoute
   PrivacyRoute: typeof PrivacyRoute
   ProductsRoute: typeof ProductsRoute
   RefundRoute: typeof RefundRoute
+  RegisterRoute: typeof RegisterRoute
   SearchRoute: typeof SearchRoute
   TermsRoute: typeof TermsRoute
   WishlistRoute: typeof WishlistRoute
@@ -322,6 +348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FfAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -355,6 +388,13 @@ declare module '@tanstack/react-router' {
       path: '/refund'
       fullPath: '/refund'
       preLoaderRoute: typeof RefundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -404,11 +444,13 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   FaqRoute: FaqRoute,
   FfAdminRoute: FfAdminRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   OrdersRoute: OrdersRoute,
   PrivacyRoute: PrivacyRoute,
   ProductsRoute: ProductsRoute,
   RefundRoute: RefundRoute,
+  RegisterRoute: RegisterRoute,
   SearchRoute: SearchRoute,
   TermsRoute: TermsRoute,
   WishlistRoute: WishlistRoute,

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { User, MapPin, Package, Heart, LogOut, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Heart, LogOut, MapPin, Package, Plus, Sparkles, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
+import { resolveImage } from "@/data/images";
+import { inr } from "@/lib/format";
 import { useAccount } from "@/store/account";
 import { useShop } from "@/store/shop";
-import { inr } from "@/lib/format";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -39,58 +40,153 @@ function AccountPage() {
 
   if (!user) {
     return (
-      <div className="container-x grid place-items-center gap-3 py-24 text-center">
-        <User className="size-10 text-muted-foreground" />
-        <h1 className="font-display text-2xl font-bold">You're not signed in</h1>
-        <p className="max-w-sm text-sm text-muted-foreground">
-          Sign in to track your orders, save delivery addresses and reorder favourites.
-        </p>
-        <Link
-          to="/login"
-          className="rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
-        >
-          Sign in
-        </Link>
+      <div className="container-x py-10 sm:py-16">
+        <div className="mx-auto grid max-w-6xl gap-6 overflow-hidden rounded-[30px] border border-primary/10 bg-gradient-to-br from-[#fffaf5] via-white to-[#f4efe7] p-4 shadow-card md:grid-cols-[1.12fr_0.88fr]">
+          <div className="relative overflow-hidden rounded-[26px]">
+            <img
+              src={resolveImage("promo-banner")}
+              alt="Flowers Forever gift arrangement"
+              className="h-full min-h-[340px] w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-6 text-white sm:p-8">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/90 backdrop-blur-sm">
+                <Sparkles className="size-3.5" /> Sweet surprise
+              </span>
+              <h2 className="mt-4 max-w-md font-display text-2xl font-bold leading-tight sm:text-3xl">
+                Make every occasion memorable with Flowers Forever.
+              </h2>
+            </div>
+          </div>
+
+          <div className="rounded-[26px] border border-[#f1e1d7] bg-white/90 p-5 shadow-[0_18px_55px_rgba(74,41,18,0.08)] backdrop-blur-sm sm:p-7">
+            <Link to="/" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Sparkles className="size-3.5" />
+              </span>
+              Flowers Forever
+            </Link>
+
+            <h1 className="mt-5 font-display text-3xl font-bold text-foreground sm:text-4xl">
+              Your journey with starts here
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              First-time shoppers create an account and returning customers log in to track orders,
+              save addresses and revisit favorite gifts.
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                to="/register"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:-translate-y-0.5"
+              >
+                Create account
+                <ArrowRight className="size-4" />
+              </Link>
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-5 py-3 text-sm font-semibold text-primary"
+              >
+                Log in
+              </Link>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {[
+                { label: "Same-day delivery", value: "200+ cities" },
+                { label: "Secure gifting", value: "Easy checkout" },
+              ].map((item) => (
+                <div key={item.label} className="rounded-xl border border-primary/10 bg-cream p-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{item.label}</p>
+                  <p className="mt-2 font-display text-lg font-bold text-foreground">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container-x py-6">
-      <h1 className="font-display text-2xl font-bold sm:text-3xl">My Account</h1>
+    <div className="container-x py-6 sm:py-8">
+      <div className="overflow-hidden rounded-[30px] border border-primary/10 bg-gradient-to-r from-[#fffaf5] via-white to-[#f1eae1] p-5 shadow-card sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Customer dashboard</p>
+            <h1 className="mt-2 font-display text-3xl font-bold text-foreground sm:text-4xl">
+              Welcome back, {user.name}
+            </h1>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { label: "Orders", value: String(orders.length), icon: Package },
+              { label: "Saved", value: String(addresses.length), icon: MapPin },
+              { label: "Wishlist", value: String(wishlistCount), icon: Heart },
+            ].map(({ label, value, icon: Icon }) => (
+              <div key={label} className="rounded-2xl border border-primary/10 bg-white/80 p-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+                  <Icon className="size-4 text-primary" />
+                </div>
+                <p className="mt-3 font-display text-2xl font-bold text-foreground">{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[18rem_1fr]">
-        <aside className="h-fit space-y-4 rounded-xl border bg-card p-5">
-          <div>
-            <p className="font-display text-lg font-bold">{user.name}</p>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
-            <p className="text-sm text-muted-foreground">+91 {user.phone}</p>
+        <aside className="h-fit overflow-hidden rounded-[26px] border border-primary/10 bg-card shadow-card">
+          <div className="bg-gradient-to-r from-primary to-[#d68a70] p-5 text-white">
+            <div className="flex items-center gap-3">
+              <div className="flex size-12 items-center justify-center rounded-full bg-white/20 text-lg font-bold">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="font-display text-xl font-bold">{user.name}</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/80">Member</p>
+              </div>
+            </div>
           </div>
-          <div className="grid gap-2 text-sm">
-            <Link to="/orders" className="flex items-center gap-2 rounded-lg border p-3">
-              <Package className="size-4 text-primary" /> My orders
-              <span className="ml-auto font-semibold">{orders.length}</span>
-            </Link>
-            <Link to="/wishlist" className="flex items-center gap-2 rounded-lg border p-3">
-              <Heart className="size-4 text-primary" /> Wishlist
-              <span className="ml-auto font-semibold">{wishlistCount}</span>
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                logout();
-                toast("Signed out");
-                navigate({ to: "/" });
-              }}
-              className="flex items-center gap-2 rounded-lg border p-3 text-left text-destructive"
-            >
-              <LogOut className="size-4" /> Sign out
-            </button>
+
+          <div className="space-y-3 p-5">
+            <div className="rounded-xl bg-cream p-3 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Email</p>
+              <p className="mt-1">{user.email}</p>
+            </div>
+            <div className="rounded-xl bg-cream p-3 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Mobile</p>
+              <p className="mt-1">+91 {user.phone}</p>
+            </div>
+
+            <div className="grid gap-2 text-sm">
+              <Link to="/orders" className="flex items-center gap-2 rounded-xl border p-3 transition-colors hover:bg-muted/50">
+                <Package className="size-4 text-primary" /> My orders
+                <span className="ml-auto font-semibold">{orders.length}</span>
+              </Link>
+              <Link to="/wishlist" className="flex items-center gap-2 rounded-xl border p-3 transition-colors hover:bg-muted/50">
+                <Heart className="size-4 text-primary" /> Wishlist
+                <span className="ml-auto font-semibold">{wishlistCount}</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  toast("Signed out");
+                  navigate({ to: "/" });
+                }}
+                className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-left text-destructive transition-colors hover:bg-destructive/10"
+              >
+                <LogOut className="size-4" /> Sign out
+              </button>
+            </div>
           </div>
         </aside>
 
         <div className="space-y-6">
-          <section className="rounded-xl border bg-card p-5">
+          <section className="rounded-[26px] border border-primary/10 bg-card p-5 shadow-card">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 font-semibold">
                 <MapPin className="size-4 text-primary" /> Saved addresses
@@ -106,7 +202,7 @@ function AccountPage() {
 
             {showForm && (
               <form
-                className="mb-4 grid gap-3 rounded-lg bg-cream p-4 sm:grid-cols-2"
+                className="mb-4 grid gap-3 rounded-2xl bg-cream p-4 sm:grid-cols-2"
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!form.name || form.phone.length !== 10 || !form.line1 || form.pincode.length !== 6) {
@@ -149,15 +245,15 @@ function AccountPage() {
             ) : (
               <ul className="grid gap-3 sm:grid-cols-2">
                 {addresses.map((a) => (
-                  <li key={a.id} className="rounded-lg border p-3 text-sm">
-                    <p className="font-semibold">
+                  <li key={a.id} className="rounded-2xl border border-primary/10 bg-cream p-3 text-sm">
+                    <p className="font-semibold text-foreground">
                       {a.label} · {a.name}
                     </p>
-                    <p className="text-muted-foreground">
+                    <p className="mt-1 text-muted-foreground">
                       {a.line1}
                       {a.line2 ? `, ${a.line2}` : ""}, {a.city} {a.state} — {a.pincode}
                     </p>
-                    <p className="text-muted-foreground">+91 {a.phone}</p>
+                    <p className="mt-1 text-muted-foreground">+91 {a.phone}</p>
                     <button
                       type="button"
                       onClick={() => removeAddress(a.id)}
@@ -171,7 +267,7 @@ function AccountPage() {
             )}
           </section>
 
-          <section className="rounded-xl border bg-card p-5">
+          <section className="rounded-[26px] border border-primary/10 bg-card p-5 shadow-card">
             <h2 className="mb-3 flex items-center gap-2 font-semibold">
               <Package className="size-4 text-primary" /> Recent orders
             </h2>
@@ -180,11 +276,11 @@ function AccountPage() {
             ) : (
               <ul className="space-y-2">
                 {orders.slice(0, 3).map((o) => (
-                  <li key={o.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
+                  <li key={o.id} className="flex items-center justify-between rounded-2xl border border-primary/10 bg-cream p-3 text-sm">
                     <span>
                       <strong>#{o.id}</strong> · {o.items.length} item(s) · {o.status}
                     </span>
-                    <span className="font-semibold">{inr(o.total)}</span>
+                    <span className="font-semibold text-foreground">{inr(o.total)}</span>
                   </li>
                 ))}
               </ul>
@@ -207,7 +303,7 @@ function Input({
 }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block font-medium">{label}</span>
+      <span className="mb-1 block font-medium text-foreground">{label}</span>
       <input value={value} onChange={(e) => onChange(e.target.value)} className="input-base" />
     </label>
   );
