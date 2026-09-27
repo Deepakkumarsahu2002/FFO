@@ -1,8 +1,22 @@
 import 'dotenv/config';
 
+const defaultAllowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+  'https://flowersforever.pages.dev',
+];
+
+const configuredOrigins = (process.env.ALLOWED_ORIGINS ?? '')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
+
 export const env = {
   port: Number(process.env.PORT ?? 4000),
   clientUrl: process.env.CLIENT_URL ?? 'http://localhost:5173',
+  allowedOrigins: [...new Set([...configuredOrigins, process.env.CLIENT_URL ?? '', ...defaultAllowedOrigins].filter(Boolean))],
   mongodbUri: process.env.MONGODB_URI ?? '',
   cloudinaryUrl: process.env.CLOUDINARY_URL ?? '',
   adminPasscode:

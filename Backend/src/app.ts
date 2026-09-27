@@ -10,17 +10,20 @@ import adminRoutes from './routes/admin.routes.js';
 const app = express();
 
 function isAllowedOrigin(origin: string) {
-  if (origin === env.clientUrl) {
+  if (!origin) {
     return true;
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    return false;
+  const normalizedOrigin = origin.replace(/\/$/, '');
+
+  if (env.allowedOrigins.includes(normalizedOrigin)) {
+    return true;
   }
 
   try {
     const url = new URL(origin);
-    return url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname);
+    const isLocalHost = ['localhost', '127.0.0.1'].includes(url.hostname);
+    return (url.protocol === 'http:' || url.protocol === 'https:') && isLocalHost;
   } catch {
     return false;
   }
