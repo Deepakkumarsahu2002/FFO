@@ -1,7 +1,25 @@
 import { Link } from "@tanstack/react-router";
-import { Instagram, Mail, Phone, ShieldCheck } from "lucide-react";
+import { Facebook, Instagram, MessageCircle, Mail, Phone, ShieldCheck } from "lucide-react";
 import { CATEGORIES } from "@/data/catalog";
 import logo from "@/assets/ff logo.png";
+
+const SOCIAL_LINKS = [
+  {
+    icon: Instagram,
+    href: "https://www.instagram.com/flowers._forever._/",
+    label: "Instagram",
+  },
+  {
+    icon: Facebook,
+    href: "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fwww.instagram.com%2Fflowers._forever._%2F",
+    label: "Facebook",
+  },
+  {
+    icon: MessageCircle,
+    href: "https://wa.me/919800012345?text=Hi%20Flowers%20Forever%2C%20I%20want%20to%20know%20more%20about%20your%20products.",
+    label: "WhatsApp",
+  },
+];
 
 const HELP = [
   { label: "About Us", to: "/about" },
@@ -33,20 +51,18 @@ export function Footer() {
             thoughtful gifts, delivered across India — often the very same day.
           </p>
           <div className="mt-5 flex gap-2">
-            {[{ icon: Instagram, href: "https://www.instagram.com/flowers._forever._/", label: "Instagram" }].map(
-              ({ icon: Icon, href, label }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={label}
-                  className="grid size-9 place-items-center rounded-full border border-primary-foreground/25 transition hover:border-white/60 hover:bg-white/5"
-                >
-                  <Icon className="size-4" />
-                </a>
-              ),
-            )}
+            {SOCIAL_LINKS.map(({ icon: Icon, href, label }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={label}
+                className="grid size-9 place-items-center rounded-full border border-primary-foreground/25 transition hover:border-white/60 hover:bg-white/5"
+              >
+                <Icon className="size-4" />
+              </a>
+            ))}
           </div>
           <div className="mt-5 space-y-1.5 text-sm text-primary-foreground/70">
             <p className="flex items-center gap-2">

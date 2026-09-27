@@ -15,6 +15,7 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { MobileTabBar } from "@/components/site/MobileTabBar";
 import { Toaster } from "@/components/ui/sonner";
+import logo from "@/assets/ff logo.png";
 
 
 function NotFoundComponent() {
@@ -91,7 +92,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "author", content: "Flowers Forever" },
       { property: "og:site_name", content: "Flowers Forever" },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: logo },
+      { property: "og:image:alt", content: "Flowers Forever logo" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: logo },
+      { name: "theme-color", content: "#7c2d12" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -101,7 +106,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: logo, type: "image/png" },
+      { rel: "apple-touch-icon", href: logo },
     ],
   }),
   shellComponent: RootShell,
