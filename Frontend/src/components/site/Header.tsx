@@ -19,7 +19,7 @@ import { liveProducts } from "@/store/catalog";
 import { useShop } from "@/store/shop";
 import { inr } from "@/lib/format";
 import { CartDrawer } from "./CartDrawer";
-import logo from "@/assets/ff logo.png";
+const BRAND_LOGO = "/ff-logo.png";
 
 type NavItem = {
   label: string;
@@ -89,7 +89,7 @@ export function Header() {
           </button>
 
           <Link to="/" className="flex shrink-0 items-center">
-            <img src={logo} alt="Flowers Forever logo" className="h-12 w-auto object-contain sm:h-14" />
+            <img src={BRAND_LOGO} alt="Flowers Forever logo" className="h-12 w-auto object-contain sm:h-14" />
           </Link>
 
           <button

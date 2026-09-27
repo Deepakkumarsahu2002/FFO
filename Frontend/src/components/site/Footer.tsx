@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { Facebook, Instagram, MessageCircle, Mail, Phone, ShieldCheck } from "lucide-react";
 import { CATEGORIES } from "@/data/catalog";
-import logo from "@/assets/ff logo.png";
+
+const BRAND_LOGO = "/ff-logo.png";
 
 const SOCIAL_LINKS = [
   {
@@ -44,7 +45,7 @@ export function Footer() {
       <div className="container-x grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-5">
         <div className="lg:col-span-2">
           <div className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-[#f5f1eb]/90 p-3 shadow-[0_10px_30px_rgba(255,255,255,0.08)] backdrop-blur-sm">
-            <img src={logo} alt="Flowers Forever logo" className="h-12 w-auto object-contain" />
+            <img src={BRAND_LOGO} alt="Flowers Forever logo" className="h-12 w-auto object-contain" />
           </div>
           <p className="mt-3 max-w-sm text-sm text-primary-foreground/70">
             Make Every Moment Bloom. Hand-crafted bouquets, freshly baked cakes, plants and
