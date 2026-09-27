@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Heart, LogOut, MapPin, Package, Plus, Sparkles, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
@@ -6,6 +6,8 @@ import { resolveImage } from "@/data/images";
 import { inr } from "@/lib/format";
 import { useAccount } from "@/store/account";
 import { useShop } from "@/store/shop";
+import { StoreProductImage } from "@/components/site/StoreProductImage";
+import { OrderActionsMenu } from "@/components/site/OrderActionsMenu";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -33,10 +35,17 @@ const EMPTY = {
 
 function AccountPage() {
   const navigate = useNavigate();
-  const { user, logout, addresses, addAddress, removeAddress, orders } = useAccount();
+  const { user, logout, addresses, addAddress, removeAddress, orders, loadOrders, cancelOrder } = useAccount();
   const wishlistCount = useShop((s) => s.wishlist.length);
   const [form, setForm] = useState(EMPTY);
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    void loadOrders(user.id).catch((error) => {
+      toast.error(error instanceof Error ? error.message : "Could not load your orders");
+    });
+  }, [loadOrders, user?.id]);
 
   if (!user) {
     return (
@@ -93,7 +102,7 @@ function AccountPage() {
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {[
-                { label: "Same-day delivery", value: "200+ cities" },
+                { label: "Delivery coverage", value: "All India PIN codes" },
                 { label: "Secure gifting", value: "Easy checkout" },
               ].map((item) => (
                 <div key={item.label} className="rounded-xl border border-primary/10 bg-cream p-3">
@@ -276,11 +285,23 @@ function AccountPage() {
             ) : (
               <ul className="space-y-2">
                 {orders.slice(0, 3).map((o) => (
-                  <li key={o.id} className="flex items-center justify-between rounded-2xl border border-primary/10 bg-cream p-3 text-sm">
-                    <span>
-                      <strong>#{o.id}</strong> · {o.items.length} item(s) · {o.status}
+                  <li key={o.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/10 bg-cream p-3 text-sm">
+                    {o.items[0] && (
+                      <StoreProductImage
+                        src={o.items[0].image}
+                        productId={o.items[0].productId}
+                        alt={o.items[0].name}
+                        className="size-14 shrink-0 rounded-lg object-cover"
+                      />
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <strong>#{o.id}</strong>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {o.items[0]?.name} · {o.items.length} item(s) · {o.status}
+                      </span>
                     </span>
-                    <span className="font-semibold text-foreground">{inr(o.total)}</span>
+                    <span className="shrink-0 font-semibold text-foreground">{inr(o.total)}</span>
+                    <OrderActionsMenu order={o} onCancel={cancelOrder} />
                   </li>
                 ))}
               </ul>

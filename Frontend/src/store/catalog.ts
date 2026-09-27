@@ -1,12 +1,8 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
-import {
-  PRODUCTS as SEED_PRODUCTS,
-  COUPONS as SEED_COUPONS,
-  type Product,
-  type CategorySlug,
-} from "@/data/catalog";
+import { type Product, type CategorySlug } from "@/data/catalog";
+
+const API_BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:4000").replace(/\/$/, "");
 
 export interface Coupon {
   code: string;
@@ -31,6 +27,8 @@ interface CatalogState {
   products: Product[];
   coupons: Coupon[];
   settings: StoreSettings;
+  isLoaded: boolean;
+  loadError: string | null;
   addProduct: (p: Product) => void;
   updateProduct: (id: string, patch: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
@@ -50,43 +48,73 @@ const defaultSettings: StoreSettings = {
   ordersOpen: true,
 };
 
-const defaultCoupons: Coupon[] = SEED_COUPONS.map((c) => ({ ...c, active: true }));
+async function apiRequest<T>(path: string): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`);
+  const payload = await response.json().catch(() => ({}));
 
-export const useCatalog = create<CatalogState>()(
-  persist(
-    (set) => ({
-      products: SEED_PRODUCTS,
-      coupons: defaultCoupons,
-      settings: defaultSettings,
+  if (!response.ok) {
+    throw new Error(payload?.message ?? "Request failed");
+  }
 
-      addProduct: (p) => set((s) => ({ products: [p, ...s.products] })),
+  return payload as T;
+}
 
-      updateProduct: (id, patch) =>
-        set((s) => ({
-          products: s.products.map((p) => (p.id === id ? { ...p, ...patch } : p)),
-        })),
+export async function hydrateCatalogFromBackend() {
+  useCatalog.setState({ isLoaded: false, loadError: null });
+  const [productsResult, couponsResult] = await Promise.allSettled([
+    apiRequest<{ items: Product[]; total?: number }>("/api/products"),
+    apiRequest<{ items: Array<Omit<Coupon, "active">> }>("/api/coupons"),
+  ]);
 
-      deleteProduct: (id) =>
-        set((s) => ({ products: s.products.filter((p) => p.id !== id) })),
+  useCatalog.setState((state) => ({
+    products:
+      productsResult.status === "fulfilled" ? productsResult.value.items ?? [] : state.products,
+    coupons:
+      couponsResult.status === "fulfilled"
+        ? (couponsResult.value.items ?? []).map((coupon) => ({ ...coupon, active: true }))
+        : state.coupons,
+    isLoaded: true,
+    loadError:
+      productsResult.status === "rejected"
+        ? productsResult.reason instanceof Error
+          ? productsResult.reason.message
+          : "Could not load products from the backend."
+        : null,
+    settings: defaultSettings,
+  }));
+}
 
-      upsertCoupon: (c) =>
-        set((s) => ({
-          coupons: s.coupons.some((x) => x.code === c.code)
-            ? s.coupons.map((x) => (x.code === c.code ? c : x))
-            : [c, ...s.coupons],
-        })),
+export const useCatalog = create<CatalogState>()((set) => ({
+  products: [],
+  coupons: [],
+  settings: defaultSettings,
+  isLoaded: false,
+  loadError: null,
 
-      deleteCoupon: (code) =>
-        set((s) => ({ coupons: s.coupons.filter((c) => c.code !== code) })),
+  addProduct: (p) => set((s) => ({ products: [p, ...s.products] })),
 
-      updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
+  updateProduct: (id, patch) =>
+    set((s) => ({
+      products: s.products.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+    })),
 
-      resetCatalog: () =>
-        set({ products: SEED_PRODUCTS, coupons: defaultCoupons, settings: defaultSettings }),
-    }),
-    { name: "ff-catalog", version: 1 },
-  ),
-);
+  deleteProduct: (id) =>
+    set((s) => ({ products: s.products.filter((p) => p.id !== id) })),
+
+  upsertCoupon: (c) =>
+    set((s) => ({
+      coupons: s.coupons.some((x) => x.code === c.code)
+        ? s.coupons.map((x) => (x.code === c.code ? c : x))
+        : [c, ...s.coupons],
+    })),
+
+  deleteCoupon: (code) =>
+    set((s) => ({ coupons: s.coupons.filter((c) => c.code !== code) })),
+
+  updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
+
+  resetCatalog: () => set({ products: [], coupons: [], settings: defaultSettings }),
+}));
 
 /** Non-reactive read of the live catalog (safe in plain functions). */
 export function liveProducts() {

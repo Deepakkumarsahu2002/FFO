@@ -4,6 +4,9 @@ import { Mail, Phone, MapPin, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/contact")({
+  validateSearch: (search: Record<string, unknown>): { orderId?: string } => ({
+    orderId: typeof search.orderId === "string" ? search.orderId : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Contact Flowers Forever — We're Here to Help" },
@@ -21,7 +24,8 @@ export const Route = createFileRoute("/contact")({
 });
 
 function ContactPage() {
-  const [form, setForm] = useState({ name: "", email: "", orderId: "", message: "" });
+  const { orderId } = Route.useSearch();
+  const [form, setForm] = useState({ name: "", email: "", orderId: orderId ?? "", message: "" });
 
   return (
     <div className="container-x py-10">

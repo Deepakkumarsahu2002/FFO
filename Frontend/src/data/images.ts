@@ -33,3 +33,26 @@ export function resolveImage(key: ImageKey): string {
   if (CDN_BASE) return `${CDN_BASE}/flowers-forever/${key}.jpg`;
   return IMAGES[key];
 }
+
+export function productImageFallback(category: string): string {
+  switch (category) {
+    case "pipe-cleaner-supplies":
+      return IMAGES["cat-flowers"];
+    case "ready-bouquets":
+      return IMAGES["hero-bouquet"];
+    case "diy-flower-kits":
+      return IMAGES["cat-combo"];
+    case "home-decor":
+      return IMAGES["cat-plants"];
+    default:
+      return IMAGES["cat-gifts"];
+  }
+}
+
+export function productImageSource(category: string, image?: string): string {
+  if (!image || image === "/placeholder.svg" || image.includes("...")) {
+    return productImageFallback(category);
+  }
+
+  return image;
+}

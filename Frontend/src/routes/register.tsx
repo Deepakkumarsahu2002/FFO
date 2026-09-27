@@ -63,7 +63,7 @@ function RegisterPage() {
           <div className="relative z-10 mt-8 flex flex-wrap gap-3">
             <div className="rounded-2xl border border-primary/10 bg-white/80 px-4 py-3 shadow-sm">
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Delivery</p>
-              <p className="mt-1 font-display text-xl font-bold text-foreground">200+ cities</p>
+              <p className="mt-1 font-display text-xl font-bold text-foreground">All India</p>
             </div>
             <div className="rounded-2xl border border-primary/10 bg-white/80 px-4 py-3 shadow-sm">
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Loved by</p>
@@ -89,7 +89,7 @@ function RegisterPage() {
 
           <form
             className="mt-6 space-y-4"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
 
               if (!form.name || !/^\S+@\S+\.\S+$/.test(form.email)) {
@@ -112,15 +112,21 @@ function RegisterPage() {
                 return;
               }
 
-              const user = register({
-                name: form.name,
-                email: form.email,
-                phone: form.phone,
-                password: form.password,
-              });
+              let user: Awaited<ReturnType<typeof register>>;
+              try {
+                user = await register({
+                  name: form.name,
+                  email: form.email,
+                  phone: form.phone,
+                  password: form.password,
+                });
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "Unable to create account. Please try again.");
+                return;
+              }
 
               if (!user) {
-                toast.error("An account with this email already exists");
+                toast.error("Please check your registration details and try again.");
                 return;
               }
 

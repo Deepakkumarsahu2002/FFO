@@ -15,6 +15,7 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { MobileTabBar } from "@/components/site/MobileTabBar";
 import { Toaster } from "@/components/ui/sonner";
+import { hydrateCatalogFromBackend } from "@/store/catalog";
 
 const BRAND_LOGO = "/ff-logo.png";
 const BRAND_SITE_URL = "https://ffo-txt.pages.dev";
@@ -89,7 +90,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Send hand-crafted bouquets, fresh cakes, plants and premium gift hampers across India with same-day delivery.",
+          "Send hand-crafted bouquets, DIY kits and home décor to valid PIN codes across India, with faster delivery options in Bengaluru.",
       },
       { name: "author", content: "Flowers Forever" },
       { property: "og:site_name", content: "Flowers Forever" },
@@ -134,6 +135,10 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    void hydrateCatalogFromBackend();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

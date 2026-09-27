@@ -59,8 +59,10 @@ export const useShop = create<ShopState>()(
       addItem: (p, qty = 1, extra = {}) =>
         set((state) => {
           const existing = state.items.find((i) => i.productId === p.id);
+          const wishlist = state.wishlist.filter((id) => id !== p.id);
           if (existing) {
             return {
+              wishlist,
               items: state.items.map((i) =>
                 i.productId === p.id
                   ? { ...i, qty: Math.min(i.qty + qty, p.stock), ...extra }
@@ -69,6 +71,7 @@ export const useShop = create<ShopState>()(
             };
           }
           return {
+            wishlist,
             items: [
               ...state.items,
               {

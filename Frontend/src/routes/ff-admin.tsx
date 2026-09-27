@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
@@ -28,9 +28,10 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { CATEGORIES, type CategorySlug, type Product } from "@/data/catalog";
-import { useCatalog, slugify, type Coupon } from "@/store/catalog";
+import { hydrateCatalogFromBackend, useCatalog, slugify, type Coupon } from "@/store/catalog";
 import { useAccount, type Order } from "@/store/account";
-import { useAdmin } from "@/store/admin";
+import { adminApiRequest, useAdmin } from "@/store/admin";
+import { StoreProductImage } from "@/components/site/StoreProductImage";
 
 export const Route = createFileRoute("/ff-admin")({
   head: () => ({
@@ -56,6 +57,45 @@ const TABS: { id: Tab; label: string; icon: typeof Package }[] = [
 function AdminPage() {
   const authed = useAdmin((s) => s.authed);
   const [tab, setTab] = useState<Tab>("dashboard");
+  const [sessionReady, setSessionReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        await useAdmin.persist.rehydrate();
+        const token = useAdmin.getState().token;
+        if (token) await adminApiRequest<{ valid: boolean }>("/session");
+        else useAdmin.getState().signOut();
+      } catch {
+        useAdmin.getState().signOut();
+      } finally {
+        if (active) setSessionReady(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!authed) return;
+    let active = true;
+    void adminApiRequest<{ items: Order[] }>("/orders")
+      .then(({ items }) => {
+        if (active) useAccount.setState({ orders: items });
+      })
+      .catch((error) => {
+        if (active) toast.error(error instanceof Error ? error.message : "Could not load admin orders");
+      });
+    return () => {
+      active = false;
+    };
+  }, [authed]);
+
+  if (!sessionReady) {
+    return <div className="container-x py-16 text-center text-sm text-muted-foreground">Checking admin session…</div>;
+  }
 
   if (!authed) return <AdminLogin />;
 
@@ -112,10 +152,14 @@ function AdminLogin() {
   return (
     <div className="container-x grid min-h-[70vh] place-items-center py-16">
       <form
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
-          if (signIn(code)) toast.success("Welcome back");
-          else toast.error("Incorrect passcode");
+          try {
+            await signIn(code);
+            toast.success("Welcome back");
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Unable to sign in");
+          }
         }}
         className="w-full max-w-sm rounded-2xl border bg-card p-7 shadow-soft"
       >
@@ -137,7 +181,6 @@ function AdminLogin() {
         <button className="mt-4 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">
           Unlock console
         </button>
-        <p className="mt-3 text-xs text-muted-foreground">Demo passcode: ffo@2026</p>
       </form>
     </div>
   );
@@ -294,8 +337,16 @@ function Dashboard() {
             <ul className="space-y-2">
               {orders.slice(0, 6).map((o) => (
                 <li key={o.id} className="flex items-center justify-between gap-3 rounded-2xl border bg-muted/20 px-3 py-2.5">
-                  <div>
-                    <p className="font-medium">#{o.id}</p>
+                  {o.items[0] && (
+                    <StoreProductImage
+                      src={o.items[0].image}
+                      productId={o.items[0].productId}
+                      alt={o.items[0].name}
+                      className="size-12 shrink-0 rounded-lg object-cover"
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">#{o.id} · {o.items[0]?.name}</p>
                     <p className="text-xs text-muted-foreground">{o.address.name} · {new Date(o.placedAt).toLocaleDateString("en-IN")}</p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -379,55 +430,62 @@ function StatusPill({ status }: { status: Order["status"] }) {
 
 /* -------------------------------- customers ------------------------------- */
 
+interface AdminCustomer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  pincode: string;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderAt: string | null;
+}
+
 function CustomersAdmin() {
-  const orders = useAccount((s) => s.orders);
+  const [customers, setCustomers] = useState<AdminCustomer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [reload, setReload] = useState(0);
 
-  const customers = Array.from(
-    orders.reduce((map, order) => {
-      const customer = order.customer ?? {
-        name: order.address.name,
-        email: "",
-        phone: order.address.phone,
-        city: order.address.city,
-        pincode: order.address.pincode,
-      };
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError("");
+    void adminApiRequest<{ items: AdminCustomer[] }>("/customers")
+      .then((result) => {
+        if (active) setCustomers(result.items);
+      })
+      .catch((requestError) => {
+        if (active) setError(requestError instanceof Error ? requestError.message : "Could not load customers");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [reload]);
 
-      const key = customer.email || customer.phone || `${customer.name}-${customer.pincode || order.address.pincode}`;
-      const current = map.get(key) ?? {
-        id: key,
-        name: customer.name,
-        email: customer.email || "—",
-        phone: customer.phone,
-        city: customer.city || order.address.city,
-        pincode: customer.pincode || order.address.pincode,
-        orderCount: 0,
-        totalSpent: 0,
-        lastOrderAt: order.placedAt,
-      };
+  if (loading) {
+    return <p className="rounded-2xl border bg-card p-8 text-center text-muted-foreground">Loading customer records…</p>;
+  }
 
-      current.orderCount += 1;
-      current.totalSpent += order.total;
-      current.lastOrderAt = new Date(order.placedAt).getTime() > new Date(current.lastOrderAt).getTime() ? order.placedAt : current.lastOrderAt;
-      map.set(key, current);
-      return map;
-    }, new Map<string, {
-      id: string;
-      name: string;
-      email: string;
-      phone: string;
-      city: string;
-      pincode: string;
-      orderCount: number;
-      totalSpent: number;
-      lastOrderAt: string;
-    }>())).values();
+  if (error) {
+    return (
+      <div className="rounded-2xl border bg-card p-8 text-center">
+        <p className="text-sm text-destructive">{error}</p>
+        <button className="mt-3 rounded-lg border px-4 py-2 text-sm font-semibold" onClick={() => setReload((value) => value + 1)}>
+          Retry
+        </button>
+      </div>
+    );
+  }
 
-  const list = Array.from(customers).sort((a, b) => new Date(b.lastOrderAt).getTime() - new Date(a.lastOrderAt).getTime());
-
-  if (list.length === 0) {
+  if (customers.length === 0) {
     return (
       <p className="rounded-2xl border bg-card p-8 text-center text-muted-foreground">
-        No customer data yet. Orders placed in the storefront will appear here.
+        No registered customers or order contacts yet.
       </p>
     );
   }
@@ -446,20 +504,22 @@ function CustomersAdmin() {
           </tr>
         </thead>
         <tbody className="divide-y">
-          {list.map((customer) => (
+          {customers.map((customer) => (
             <tr key={customer.id}>
               <td className="p-3">
                 <p className="font-medium">{customer.name}</p>
                 <p className="text-xs text-muted-foreground">{customer.pincode}</p>
               </td>
               <td className="p-3">
-                <p>{customer.email}</p>
+                <p>{customer.email || "—"}</p>
                 <p className="text-xs text-muted-foreground">+91 {customer.phone}</p>
               </td>
               <td className="p-3">{customer.city}</td>
               <td className="p-3">{customer.orderCount}</td>
               <td className="p-3">{inr(customer.totalSpent)}</td>
-              <td className="p-3">{new Date(customer.lastOrderAt).toLocaleString("en-IN")}</td>
+              <td className="p-3">
+                {customer.lastOrderAt ? new Date(customer.lastOrderAt).toLocaleString("en-IN") : "No orders yet"}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -485,7 +545,6 @@ const emptyDraft = (): Product => ({
   stock: 10,
   sku: `FF-NEW-${Date.now().toString().slice(-4)}`,
   images: [],
-  occasions: [],
   tags: [],
   color: "Multicolour",
   sameDay: true,
@@ -502,6 +561,7 @@ function ProductsAdmin() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<"all" | CategorySlug>("all");
   const [draft, setDraft] = useState<Product | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const list = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -512,25 +572,39 @@ function ProductsAdmin() {
     );
   }, [products, q, cat]);
 
-  function save(p: Product) {
+  async function save(p: Product) {
     if (!p.name.trim()) {
       toast.error("Product name is required");
+      return;
+    }
+    if (p.images.length === 0) {
+      toast.error("Upload at least one product photo");
       return;
     }
     const finished: Product = {
       ...p,
       slug: p.slug || slugify(p.name),
       shortDescription: p.shortDescription || `${p.subcategory || p.category} · FFO Studio`,
-      images: p.images.length ? p.images : ["/placeholder.svg"],
     };
-    if (products.some((x) => x.id === finished.id)) {
-      updateProduct(finished.id, finished);
-      toast.success("Product updated");
-    } else {
-      addProduct(finished);
-      toast.success("Product added");
+    setSaving(true);
+    try {
+      const exists = products.some((x) => x.id === finished.id);
+      const result = await adminApiRequest<{ product: Product }>(
+        exists ? `/products/${encodeURIComponent(finished.id)}` : "/products",
+        {
+          method: exists ? "PUT" : "POST",
+          body: JSON.stringify(finished),
+        },
+      );
+      if (exists) updateProduct(finished.id, result.product);
+      else addProduct(result.product);
+      toast.success(exists ? "Product updated" : "Product added");
+      setDraft(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save product");
+    } finally {
+      setSaving(false);
     }
-    setDraft(null);
   }
 
   return (
@@ -589,6 +663,15 @@ function ProductsAdmin() {
                     type="number"
                     value={p.price}
                     onChange={(e) => updateProduct(p.id, { price: Number(e.target.value) })}
+                    onBlur={() => {
+                      void adminApiRequest(`/products/${encodeURIComponent(p.id)}`, {
+                        method: "PATCH",
+                        body: JSON.stringify({ price: p.price }),
+                      }).catch((error) => {
+                        toast.error(error instanceof Error ? error.message : "Could not save price");
+                        void hydrateCatalogFromBackend();
+                      });
+                    }}
                     className="input-base h-9 w-24 py-1"
                   />
                 </td>
@@ -597,6 +680,15 @@ function ProductsAdmin() {
                     type="number"
                     value={p.stock}
                     onChange={(e) => updateProduct(p.id, { stock: Number(e.target.value) })}
+                    onBlur={() => {
+                      void adminApiRequest(`/products/${encodeURIComponent(p.id)}`, {
+                        method: "PATCH",
+                        body: JSON.stringify({ stock: p.stock }),
+                      }).catch((error) => {
+                        toast.error(error instanceof Error ? error.message : "Could not save stock");
+                        void hydrateCatalogFromBackend();
+                      });
+                    }}
                     className="input-base h-9 w-20 py-1"
                   />
                 </td>
@@ -609,9 +701,14 @@ function ProductsAdmin() {
                       Edit
                     </button>
                     <button
-                      onClick={() => {
-                        deleteProduct(p.id);
-                        toast.success("Product removed");
+                      onClick={async () => {
+                        try {
+                          await adminApiRequest(`/products/${encodeURIComponent(p.id)}`, { method: "DELETE" });
+                          deleteProduct(p.id);
+                          toast.success("Product removed");
+                        } catch (error) {
+                          toast.error(error instanceof Error ? error.message : "Could not remove product");
+                        }
                       }}
                       className="rounded-lg border border-destructive/40 px-2 py-1.5 text-destructive"
                       aria-label={`Delete ${p.name}`}
@@ -638,7 +735,8 @@ function ProductsAdmin() {
           value={draft}
           onChange={setDraft}
           onClose={() => setDraft(null)}
-          onSave={() => save(draft)}
+          onSave={() => void save(draft)}
+          saving={saving}
         />
       )}
     </div>
@@ -650,20 +748,22 @@ function ProductEditor({
   onChange,
   onClose,
   onSave,
+  saving,
 }: {
   value: Product;
   onChange: (p: Product) => void;
   onClose: () => void;
   onSave: () => void;
+  saving: boolean;
 }) {
   const set = (patch: Partial<Product>) => onChange({ ...value, ...patch });
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
       <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-card p-6">
-        <h2 className="font-display text-lg font-bold">
-          {value.name ? `Edit — ${value.name}` : "New product"}
-        </h2>
+      <h2 className="font-display text-lg font-bold">
+        {value.name ? `Edit — ${value.name}` : "New product"}
+      </h2>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field label="Name">
@@ -719,7 +819,11 @@ function ProductEditor({
         </div>
 
         <Field label="Product photos (first photo is the main one)" className="mt-4">
-          <ImagesEditor images={value.images} onChange={(images) => set({ images })} />
+          <ImagesEditor
+            images={value.images}
+            category={value.category}
+            onChange={(images) => set({ images })}
+          />
         </Field>
 
         <Field label="Description" className="mt-4">
@@ -744,9 +848,10 @@ function ProductEditor({
           </button>
           <button
             onClick={onSave}
-            className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground"
+            disabled={saving}
+            className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            Save product
+            {saving ? "Saving…" : "Save product"}
           </button>
         </div>
       </div>
@@ -776,7 +881,6 @@ function Toggle({
   checked,
   onChange,
 }: {
-  label: string;
   checked: boolean;
   onChange: (v: boolean) => void;
 }) {
@@ -827,9 +931,18 @@ function OrdersAdmin() {
               </span>
               <select
                 value={o.status}
-                onChange={(e) => {
-                  setOrderStatus(o.id, e.target.value as Order["status"]);
-                  toast.success(`Order #${o.id} → ${e.target.value}`);
+                onChange={async (e) => {
+                  const status = e.target.value as Order["status"];
+                  try {
+                    const result = await adminApiRequest<{ order: Order }>(
+                      `/orders/${encodeURIComponent(o.id)}/status`,
+                      { method: "PATCH", body: JSON.stringify({ status }) },
+                    );
+                    setOrderStatus(o.id, result.order.status);
+                    toast.success(`Order #${o.id} → ${result.order.status}`);
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : "Could not update order status");
+                  }
                 }}
                 className="input-base h-9 w-44 py-1"
               >
@@ -884,10 +997,18 @@ function OrdersAdmin() {
             </p>
             <ul className="space-y-2 text-sm">
               {o.items.map((i) => (
-                <li key={`${o.id}-${i.productId}`} className="flex flex-wrap justify-between gap-2 border-b border-border/60 pb-2 last:border-none last:pb-0">
-                  <span>
-                    {i.name} × {i.qty}
-                    {i.variant && <span className="text-muted-foreground"> · {i.variant}</span>}
+                <li key={`${o.id}-${i.productId}`} className="flex items-center justify-between gap-3 border-b border-border/60 pb-2 last:border-none last:pb-0">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <StoreProductImage
+                      src={i.image}
+                      productId={i.productId}
+                      alt={i.name}
+                      className="size-12 shrink-0 rounded-lg object-cover"
+                    />
+                    <span className="min-w-0">
+                      <span className="block truncate">{i.name} × {i.qty}</span>
+                      {i.variant && <span className="text-muted-foreground">{i.variant}</span>}
+                    </span>
                   </span>
                   <span className="font-medium">{inr(i.price * i.qty)}</span>
                 </li>
@@ -1134,30 +1255,66 @@ function compressImage(file: File, max = 1200, quality = 0.82): Promise<string> 
   });
 }
 
-function ImagesEditor({ images, onChange }: { images: string[]; onChange: (images: string[]) => void }) {
+function ImagesEditor({
+  images,
+  category,
+  onChange,
+}: {
+  images: string[];
+  category: string;
+  onChange: (images: string[]) => void;
+}) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const list = images.filter((i) => i && i !== "/placeholder.svg");
 
   const onFiles = async (files: FileList | null) => {
     if (!files?.length) return;
+    const remainingSlots = 8 - list.length;
+    if (remainingSlots <= 0) {
+      toast.error("A product can have up to 8 photos");
+      return;
+    }
+
     setBusy(true);
+    const added: string[] = [];
+    const failures: string[] = [];
+    const selectedFiles = Array.from(files);
+    if (selectedFiles.length > remainingSlots) {
+      toast.error(`Only ${remainingSlots} more photo${remainingSlots === 1 ? "" : "s"} can be added`);
+    }
+
     try {
-      const added: string[] = [];
-      for (const f of Array.from(files)) {
-        if (!f.type.startsWith("image/")) continue;
-        if (f.size > 10 * 1024 * 1024) {
-          toast.error(`${f.name} is larger than 10 MB`);
+      for (const f of selectedFiles.slice(0, remainingSlots)) {
+        if (!f.type.startsWith("image/")) {
+          failures.push(`${f.name}: not an image file`);
           continue;
         }
-        added.push(await compressImage(f));
+        if (f.size > 10 * 1024 * 1024) {
+          failures.push(`${f.name}: larger than 10 MB`);
+          continue;
+        }
+
+        try {
+        const image = await compressImage(f);
+        const result = await adminApiRequest<{ url: string }>("/images", {
+          method: "POST",
+          body: JSON.stringify({ image }),
+        });
+        added.push(result.url);
+        } catch (error) {
+          failures.push(`${f.name}: ${error instanceof Error ? error.message : "upload failed"}`);
+        }
       }
       if (added.length) {
         onChange([...list, ...added].slice(0, 8));
         toast.success(`${added.length} photo${added.length > 1 ? "s" : ""} added`);
       }
-    } catch {
-      toast.error("Could not read one of the images");
+      if (failures.length) {
+        toast.error(failures[0] ?? "Some images could not be uploaded");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not process selected images");
     } finally {
       setBusy(false);
     }
@@ -1176,7 +1333,12 @@ function ImagesEditor({ images, onChange }: { images: string[]; onChange: (image
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
         {list.map((src, i) => (
           <div key={i} className="relative overflow-hidden rounded-lg border border-border bg-muted">
-            <img src={src} alt={`Photo ${i + 1}`} className="aspect-square w-full object-cover" />
+            <StoreProductImage
+              src={src}
+              category={category}
+              alt={`Photo ${i + 1}`}
+              className="aspect-square w-full object-cover"
+            />
             {i === 0 && (
               <span className="absolute left-1 top-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
                 Main
@@ -1192,7 +1354,7 @@ function ImagesEditor({ images, onChange }: { images: string[]; onChange: (image
         {list.length < 8 && (
           <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border text-center text-xs text-muted-foreground transition hover:border-primary hover:text-primary">
             <span className="text-2xl">+</span>
-            {busy ? "Uploading…" : "Upload photos"}
+            {busy ? "Uploading to Cloudinary…" : "Upload photos"}
             <input
               type="file"
               accept="image/*"

@@ -1,10 +1,13 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useShop, computeTotals } from "@/store/shop";
+import { useAccount } from "@/store/account";
 import { inr } from "@/lib/format";
+import { StoreProductImage } from "./StoreProductImage";
 
 export function CartDrawer() {
+  const navigate = useNavigate();
   const open = useShop((s) => s.cartOpen);
   const setOpen = useShop((s) => s.setCartOpen);
   const items = useShop((s) => s.items);
@@ -56,8 +59,9 @@ export function CartDrawer() {
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
               {items.map((item) => (
                 <div key={item.productId} className="flex gap-3 rounded-xl border p-2">
-                  <img
+                  <StoreProductImage
                     src={item.image}
+                    productId={item.productId}
                     alt={item.name}
                     className="size-20 rounded-lg object-cover"
                   />
@@ -121,13 +125,17 @@ export function CartDrawer() {
                 >
                   View cart
                 </Link>
-                <Link
-                  to="/checkout"
-                  onClick={() => setOpen(false)}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    const account = useAccount.getState();
+                    navigate({ to: account.user?.id && account.token ? "/checkout" : "/account" });
+                  }}
                   className="grid h-11 place-items-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
                 >
                   Checkout
-                </Link>
+                </button>
               </div>
             </div>
           </>

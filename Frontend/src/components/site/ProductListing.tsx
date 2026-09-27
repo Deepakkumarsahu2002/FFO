@@ -3,14 +3,13 @@ import { Link } from "@tanstack/react-router";
 import { SlidersHorizontal, ChevronRight, X, PackageOpen } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { CATEGORIES, OCCASIONS, type Product } from "@/data/catalog";
+import { CATEGORIES, type Product } from "@/data/catalog";
 import { discountPct } from "@/lib/format";
-import { ProductCard } from "./ProductCard";
+import { ProductCard, ProductCardSkeleton } from "./ProductCard";
 
 export interface ListingFilters {
   category?: string;
   sub?: string;
-  occasion?: string;
   min?: number;
   max?: number;
   sort?: string;
@@ -33,36 +32,31 @@ const PRICE_BANDS = [
   { label: "₹2000 & above", min: 2000, max: 100000 },
 ];
 
-const STYLE_TAGS = [
-  "DIY Craft",
-  "Gift Wrapping",
-  "Home Styling",
-  "Workshop Supply",
-  "Party Decor",
-  "Table Decor",
-  "Handmade Gift",
-  "Decor Upgrade",
-];
-
 export function ProductListing({
   allProducts,
   title,
   description,
   breadcrumb,
   initial,
-  lockCategory,
+  lockedCategory,
+  isLoading = false,
+  loadError,
+  onRetry,
 }: {
   allProducts: Product[];
   title: string;
   description?: string;
   breadcrumb: { label: string; to?: string; params?: { slug: string } }[];
   initial?: ListingFilters;
-  lockCategory?: boolean;
+  lockedCategory?: Product["category"];
+  isLoading?: boolean;
+  loadError?: string | null;
+  onRetry?: () => void;
 }) {
   const [categories, setCategories] = useState<string[]>(
     initial?.category ? [initial.category] : [],
   );
-  const [occasions, setOccasions] = useState<string[]>(initial?.occasion ? [initial.occasion] : []);
+  const [subcategories, setSubcategories] = useState<string[]>(initial?.sub ? [initial.sub] : []);
   const [band, setBand] = useState<number | null>(() => {
     if (initial?.min == null && initial?.max == null) return null;
     return PRICE_BANDS.findIndex(
@@ -70,23 +64,33 @@ export function ProductListing({
     );
   });
   const [minRating, setMinRating] = useState<number | null>(initial?.rating ?? null);
-  const [styles, setStyles] = useState<string[]>([]);
   const [sameDayOnly, setSameDayOnly] = useState(false);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sort, setSort] = useState(initial?.sort ?? "popularity");
   const [page, setPage] = useState(1);
   const perPage = 16;
+  const subcategoryOptions = useMemo(
+    () => {
+      const visibleCategories = lockedCategory
+        ? CATEGORIES.filter((category) => category.slug === lockedCategory)
+        : categories.length
+          ? CATEGORIES.filter((category) => categories.includes(category.slug))
+          : CATEGORIES;
+      return visibleCategories.flatMap((category) => category.subcategories);
+    },
+    [categories, lockedCategory],
+  );
 
   const filtered = useMemo(() => {
     let list = allProducts.filter((p) => {
-      if (!lockCategory && categories.length && !categories.includes(p.category)) return false;
-      if (occasions.length && !p.occasions.some((o) => occasions.includes(o))) return false;
+      if (lockedCategory && p.category !== lockedCategory) return false;
+      if (!lockedCategory && categories.length && !categories.includes(p.category)) return false;
+      if (subcategories.length && !subcategories.includes(p.subcategory)) return false;
       if (band != null && band >= 0) {
         const b = PRICE_BANDS[band];
         if (p.price < b.min || p.price > b.max) return false;
       }
       if (minRating && p.rating < minRating) return false;
-      if (styles.length && !p.occasions.some((o) => styles.includes(o))) return false;
       if (sameDayOnly && !p.sameDay) return false;
       if (inStockOnly && p.stock <= 0) return false;
       return true;
@@ -104,22 +108,20 @@ export function ProductListing({
   }, [
     allProducts,
     categories,
-    occasions,
+    subcategories,
     band,
     minRating,
-    styles,
     sameDayOnly,
     inStockOnly,
     sort,
-    lockCategory,
+    lockedCategory,
   ]);
 
   const visible = filtered.slice(0, page * perPage);
 
   const activeCount =
     categories.length +
-    occasions.length +
-    styles.length +
+    subcategories.length +
     (band != null && band >= 0 ? 1 : 0) +
     (minRating ? 1 : 0) +
     (sameDayOnly ? 1 : 0) +
@@ -127,10 +129,9 @@ export function ProductListing({
 
   function clearAll() {
     setCategories([]);
-    setOccasions([]);
+    setSubcategories([]);
     setBand(null);
     setMinRating(null);
-    setStyles([]);
     setSameDayOnly(false);
     setInStockOnly(false);
   }
@@ -147,30 +148,31 @@ export function ProductListing({
         </button>
       )}
 
-      {!lockCategory && (
+      {!lockedCategory && (
         <FilterGroup title="Category">
           {CATEGORIES.map((c) => (
             <Check
               key={c.slug}
               label={c.name}
               checked={categories.includes(c.slug)}
-              onChange={() => toggle(setCategories, c.slug)}
+              onChange={() => {
+                toggle(setCategories, c.slug);
+                setSubcategories([]);
+              }}
             />
           ))}
         </FilterGroup>
       )}
 
-      <FilterGroup title="Occasion">
-        <div className="max-h-52 overflow-y-auto pr-1 scrollbar-none">
-          {OCCASIONS.map((o) => (
-            <Check
-              key={o}
-              label={o}
-              checked={occasions.includes(o)}
-              onChange={() => toggle(setOccasions, o)}
-            />
-          ))}
-        </div>
+      <FilterGroup title="Subcategory">
+        {subcategoryOptions.map((subcategory) => (
+          <Check
+            key={subcategory}
+            label={subcategory}
+            checked={subcategories.includes(subcategory)}
+            onChange={() => toggle(setSubcategories, subcategory)}
+          />
+        ))}
       </FilterGroup>
 
       <FilterGroup title="Price">
@@ -201,19 +203,6 @@ export function ProductListing({
           checked={sameDayOnly}
           onChange={() => setSameDayOnly(!sameDayOnly)}
         />
-      </FilterGroup>
-
-      <FilterGroup title="Style">
-        <div className="max-h-52 overflow-y-auto pr-1 scrollbar-none">
-          {STYLE_TAGS.map((style) => (
-            <Check
-              key={style}
-              label={style}
-              checked={styles.includes(style)}
-              onChange={() => toggle(setStyles, style)}
-            />
-          ))}
-        </div>
       </FilterGroup>
 
       <FilterGroup title="Availability">
@@ -251,7 +240,7 @@ export function ProductListing({
           <h1 className="font-display text-2xl font-bold sm:text-3xl">{title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {description ? `${description} · ` : ""}
-            {filtered.length} products
+            {isLoading ? "Loading products…" : loadError ? "Products unavailable" : `${filtered.length} products`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -303,7 +292,22 @@ export function ProductListing({
         </aside>
 
         <div className="min-w-0 flex-1">
-          {visible.length === 0 ? (
+          {isLoading && visible.length === 0 ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
+              {Array.from({ length: 4 }, (_, index) => <ProductCardSkeleton key={index} />)}
+            </div>
+          ) : loadError && visible.length === 0 ? (
+            <div className="grid place-items-center gap-3 rounded-xl border border-dashed py-20 text-center">
+              <PackageOpen className="size-10 text-muted-foreground" />
+              <p className="font-semibold">Products could not be loaded</p>
+              <p className="max-w-sm text-sm text-muted-foreground">{loadError}</p>
+              {onRetry && (
+                <button type="button" onClick={onRetry} className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground">
+                  Retry
+                </button>
+              )}
+            </div>
+          ) : visible.length === 0 ? (
             <div className="grid place-items-center gap-3 rounded-xl border border-dashed py-20 text-center">
               <PackageOpen className="size-10 text-muted-foreground" />
               <p className="font-semibold">No products match these filters</p>

@@ -71,16 +71,21 @@ function LoginPage() {
 
           <form
             className="mt-6 space-y-4"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
               if (!/^\S+@\S+\.\S+$/.test(form.email) || !form.password) {
                 toast.error("Enter a valid email and password");
                 return;
               }
 
-              const isValid = loginWithEmailAndPassword(form.email, form.password);
-              if (!isValid) {
-                toast.error("Incorrect email or password");
+              try {
+                const isValid = await loginWithEmailAndPassword(form.email, form.password);
+                if (!isValid) {
+                  toast.error("Incorrect email or password");
+                  return;
+                }
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "Unable to log in. Please try again.");
                 return;
               }
 

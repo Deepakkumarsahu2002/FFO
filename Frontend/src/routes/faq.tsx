@@ -8,7 +8,7 @@ export const Route = createFileRoute("/faq")({
       {
         name: "description",
         content:
-          "Answers about same-day and midnight delivery, order changes, substitutions, refunds and cake customisation at Flowers Forever.",
+          "Answers about India-wide PIN delivery, Bengaluru delivery times, orders, substitutions and refunds at Flowers Forever.",
       },
       { property: "og:title", content: "Frequently Asked Questions — Flowers Forever" },
       { property: "og:description", content: "Delivery, orders, refunds and customisation answers." },
@@ -19,8 +19,8 @@ export const Route = createFileRoute("/faq")({
 });
 
 const FAQS = [
-  ["Do you deliver on the same day?", "Yes. Orders placed before 6 PM in serviceable pincodes are delivered the same day. Midnight delivery is available in most metro pincodes for an added charge."],
-  ["Which cities do you serve?", "Mumbai, Delhi NCR, Bengaluru, Hyderabad, Chennai, Pune, Kolkata, Bhubaneswar, Cuttack and Berhampur, with more added every quarter."],
+  ["Where do you deliver?", "We accept valid six-digit PIN codes across India. Check your PIN code on a product page for delivery availability and an estimate."],
+  ["Can I get same-day delivery?", "Bengaluru PIN codes beginning 560 may have same-day or next-day options, depending on order time and available delivery slots. Other Indian PIN codes receive an estimated 2–5 day delivery window."],
   ["Can I change my delivery date?", "Yes, up to 24 hours before the selected slot from My Orders. Personalised and perishable items are an exception once production starts."],
   ["Will my bouquet look exactly like the photo?", "Very close. If a specific bloom is unavailable we substitute a flower of equal or higher value and keep the colour palette and size identical."],
   ["Can I add a personal message?", "Every order includes a free handwritten message card. You can add the text on the product page before adding to cart."],

@@ -14,10 +14,13 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { CATEGORIES, CITIES, OCCASIONS } from "@/data/catalog";
+import { CATEGORIES, CITIES } from "@/data/catalog";
 import { liveProducts } from "@/store/catalog";
+import { useProducts } from "@/store/catalog";
+import { productImageFallback, productImageSource } from "@/data/images";
 import { useShop } from "@/store/shop";
 import { inr } from "@/lib/format";
+import { checkDeliveryPincode } from "@/lib/delivery";
 import { CartDrawer } from "./CartDrawer";
 const BRAND_LOGO = "/ff-logo.png";
 
@@ -64,9 +67,9 @@ export function Header() {
     <>
       <div className="bg-wine-deep text-[11px] text-primary-foreground sm:text-xs">
         <div className="container-x flex h-9 items-center justify-center gap-4 text-center">
-          <span>Same Day Delivery</span>
+          <span>Delivery across India</span>
           <span className="opacity-40">|</span>
-          <span className="hidden sm:inline">7 Days Customer Support</span>
+          <span className="hidden sm:inline">Same/next-day in Bengaluru</span>
           <span className="hidden opacity-40 sm:inline">|</span>
           <span>Secure Payments</span>
         </div>
@@ -180,7 +183,8 @@ function Badge({ children }: { children: React.ReactNode }) {
 
 function MegaMenu({ categorySlug }: { categorySlug?: string }) {
   const category = CATEGORIES.find((c) => c.slug === categorySlug) ?? CATEGORIES[0];
-  const popular = liveProducts().filter((p) => p.category === category.slug).slice(0, 3);
+  const products = useProducts();
+  const popular = products.filter((p) => p.category === category.slug).slice(0, 3);
 
   return (
     <div className="container-x grid grid-cols-12 gap-8 py-6">
@@ -197,24 +201,6 @@ function MegaMenu({ categorySlug }: { categorySlug?: string }) {
                 className="text-sm text-foreground/80 hover:text-primary"
               >
                 {sub}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="col-span-3">
-        <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Occasions
-        </h3>
-        <ul className="grid grid-cols-2 gap-1.5">
-          {OCCASIONS.slice(0, 10).map((o) => (
-            <li key={o}>
-              <Link
-                to="/products"
-                search={{ occasion: o }}
-                className="text-sm text-foreground/80 hover:text-primary"
-              >
-                {o}
               </Link>
             </li>
           ))}
@@ -252,8 +238,11 @@ function MegaMenu({ categorySlug }: { categorySlug?: string }) {
               className="group/item block"
             >
               <img
-                src={p.images[0]}
+                src={productImageSource(p.category, p.images[0])}
                 alt={p.name}
+                onError={(event) => {
+                  event.currentTarget.src = productImageFallback(p.category);
+                }}
                 loading="lazy"
                 className="aspect-square w-full rounded-lg object-cover"
               />
@@ -340,7 +329,14 @@ function SearchBox({ compact }: { compact?: boolean }) {
                 }}
                 className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-muted"
               >
-                <img src={p.images[0]} alt="" className="size-10 rounded object-cover" />
+                <img
+                  src={productImageSource(p.category, p.images[0])}
+                  alt=""
+                  onError={(event) => {
+                    event.currentTarget.src = productImageFallback(p.category);
+                  }}
+                  className="size-10 rounded object-cover"
+                />
                 <span className="flex-1 text-sm">{p.name}</span>
                 <span className="text-sm font-semibold">{inr(p.price)}</span>
               </button>
@@ -450,6 +446,22 @@ function LocationDialog({
 }) {
   const { city, pincode, setLocation } = useShop();
   const [pin, setPin] = useState(pincode);
+  const [checking, setChecking] = useState(false);
+  const [deliveryMessage, setDeliveryMessage] = useState("");
+
+  async function applyPincode() {
+    setChecking(true);
+    setDeliveryMessage("");
+    try {
+      const result = await checkDeliveryPincode(pin);
+      setLocation(result.city, pin);
+      setDeliveryMessage(result.estimate);
+    } catch (error) {
+      setDeliveryMessage(error instanceof Error ? error.message : "Could not check this PIN code.");
+    } finally {
+      setChecking(false);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -468,17 +480,14 @@ function LocationDialog({
             />
             <button
               type="button"
-              onClick={() => {
-                const match = CITIES.find((c) => c.pincodes.includes(pin));
-                setLocation(match?.name ?? city, pin);
-                onOpenChange(false);
-              }}
-              disabled={pin.length !== 6}
+              onClick={() => void applyPincode()}
+              disabled={pin.length !== 6 || checking}
               className="h-11 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"
             >
-              Apply
+              {checking ? "Checking…" : "Apply"}
             </button>
           </div>
+          {deliveryMessage && <p className="text-sm text-muted-foreground">{deliveryMessage}</p>}
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Popular cities
@@ -490,6 +499,8 @@ function LocationDialog({
                   type="button"
                   onClick={() => {
                     setLocation(c.name, c.pincodes[0]);
+                    setPin(c.pincodes[0]);
+                    setDeliveryMessage("");
                     onOpenChange(false);
                   }}
                   className={cn(

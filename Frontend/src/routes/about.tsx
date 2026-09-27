@@ -8,12 +8,12 @@ export const Route = createFileRoute("/about")({
       {
         name: "description",
         content:
-          "Flowers Forever is an Indian gifting studio delivering hand-crafted bouquets, fresh cakes, plants and hampers across 10 cities.",
+          "Flowers Forever is an Indian gifting studio delivering hand-crafted gifts to valid PIN codes across India, with faster options in Bengaluru.",
       },
       { property: "og:title", content: "About Flowers Forever — Our Story" },
       {
         property: "og:description",
-        content: "Hand-crafted gifting delivered across India, often the very same day.",
+        content: "Hand-crafted gifts delivered across India, with same-day or next-day options in Bengaluru.",
       },
       { property: "og:type", content: "website" },
     ],
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/about")({
 
 const VALUES = [
   { icon: Flower2, title: "Florist-crafted", body: "Every bouquet is arranged by hand on the day it ships." },
-  { icon: Truck, title: "Same-day delivery", body: "Order by 6 PM in serviceable pincodes across 10 cities." },
+  { icon: Truck, title: "Fast Bengaluru delivery", body: "Same-day or next-day options, depending on order time and available slots." },
   { icon: Leaf, title: "Responsibly sourced", body: "Farm-direct blooms and recyclable packaging wherever possible." },
   { icon: HeartHandshake, title: "Care guaranteed", body: "Not delighted? We replace or refund the order." },
 ];
@@ -58,7 +58,7 @@ function AboutPage() {
 
       <div className="mt-10 grid gap-4 rounded-2xl bg-cream p-8 text-center sm:grid-cols-3">
         {[
-          ["10", "cities served"],
+          ["All India", "PIN code delivery"],
           ["50k+", "gifts delivered"],
           ["4.7★", "average rating"],
         ].map(([n, l]) => (

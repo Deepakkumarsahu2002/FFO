@@ -1,222 +1,102 @@
-# Bloomora Gifting Marketplace
+# Flowers Forever
 
-You are a senior product designer, UX engineer, frontend engineer, backend engineer, database architect and DevOps engineer.
+Flowers Forever is a premium Indian gifting marketplace built as a monorepo with a frontend storefront and a backend API layer.
 
-Build a COMPLETE PRODUCTION-READY flower, cake, plant and gifting e-commerce platform.
+## Project structure
 
-The product should be an original premium Indian gifting marketplace called:
+- Frontend/ — React + Vite storefront for the customer experience
+- Backend/ — Node.js + Express + TypeScript API scaffold for products, auth, orders, and account flows
+- README.md — project overview and setup guide
+- roadmap.md — delivery plan and current progress
 
-"Flowers Forever"
+## Current state
 
-The goal is to create a highly polished commercial website with the depth, complexity, shopping experience, information architecture and visual density of leading Indian flower/gifting e-commerce platforms.
+### Frontend
+The storefront in Frontend is built and includes:
+- home page and category browsing
+- product detail pages
+- shopping cart and wishlist logic
+- account and address management
+- checkout flow and order simulation
+- admin-like product and order views
 
-IMPORTANT:
+### Backend
+A backend foundation has been created in Backend with:
+- Express server
+- TypeScript setup
+- mock catalog and order data
+- initial REST API routes for products, coupons, search, auth, addresses, and orders
+- environment configuration for local development
 
-This is NOT a simple college/demo project.
+## Tech stack
 
-Build it as a real production-ready SaaS/e-commerce application that could actually be deployed and used by customers.
-
-Do NOT copy FNP/Ferns N Petals branding, logo, copyrighted images, proprietary text, or trademarked assets.
-
-However, the overall UX patterns, page hierarchy, e-commerce flow, navigation concepts, product discovery experience, category structure, delivery-selection experience, cart behavior and general visual density can be inspired by leading Indian gifting marketplaces.
-
-==================================================
-
-1. BRAND
-
-==================================================
-
-Brand name:
-
-Bloomora
-
-Tagline:
-
-"Make Every Moment Bloom"
-
-Brand personality:
-
-- Premium
-
-- Elegant
-
-- Modern
-
-- Warm
-
-- Trustworthy
-
-- Indian gifting focused
-
-Create an original visual identity.
-
-Use a sophisticated premium color system:
-
-- Deep burgundy / wine
-
-- Warm cream
-
-- Soft blush
-
-- Dark charcoal
-
-- White
-
-- Subtle green accents
-
-Do NOT use FNP's exact branding or colors.
-
-Typography:
-
-- Modern premium sans-serif
-
-- Excellent readability
-
-- Strong hierarchy
-
-==================================================
-
-2. TECHNOLOGY STACK
-
-==================================================
-
-Frontend:
-
+### Frontend
 - React
-
 - Vite
-
-- JavaScript
-
+- TypeScript
+- TanStack Router
 - Tailwind CSS
-
-- React Router
-
-- TanStack Query
-
-- Zustand or Redux Toolkit
-
+- Zustand
+- React Query
 - React Hook Form
-
 - Zod
 
-- Lucide icons
-
-Backend:
-
+### Backend
 - Node.js
-
-- Express.js
-
+- Express
+- TypeScript
 - REST API architecture
 
-Database:
+## API surface
 
-- MongoDB
+The backend currently supports:
 
-- Mongoose
+- GET /api/health
+- GET /api/categories
+- GET /api/products
+- GET /api/products/:slug
+- GET /api/search
+- GET /api/coupons
+- GET /api/pincode/:code
+- POST /api/auth/register
+- POST /api/auth/login
+- GET /api/account/:userId
+- POST /api/account/:userId/addresses
+- DELETE /api/account/:userId/addresses/:addressId
+- GET /api/orders/:userId
+- POST /api/orders
+- PATCH /api/orders/:id/status
+- GET /api/admin/overview
 
-Authentication:
+This API contract is aligned with the current customer flows already implemented in the frontend.
 
-- JWT access/refresh token architecture
+## Local setup
 
-- Secure password hashing
+### Frontend
+```bash
+cd Frontend
+npm install
+npm run dev
+```
 
-- Email verification
+### Backend
+```bash
+cd Backend
+npm install
+npm run dev
+```
 
-- Forgot password
+## Next priorities
 
-- Reset password
+1. Connect the frontend stores to real backend fetch calls instead of local simulation
+2. Replace mock data with a real database layer
+3. Add JWT auth, password hashing, and secure session handling
+4. Add payment integration and order webhooks
+5. Prepare deployment configuration for frontend and backend hosting
 
-- Google OAuth ready
+## Product direction
 
-Payments:
-
-- Razorpay integration architecture
-
-- Create order
-
-- Payment verification
-
-- Webhook handling
-
-- Payment failure handling
-
-- Refund architecture
-
-Storage:
-
-- Cloudinary-compatible image architecture
-
-Email:
-
-- Nodemailer / transactional email architecture
-
-Deployment-ready:
-
-- Frontend: Vercel compatible
-
-- Backend: Render/Railway/AWS compatible
-
-- MongoDB Atlas compatible
-
-Use environment variables.
-
-NEVER hardcode:
-
-- API keys
-
-- database credentials
-
-- payment secrets
-
-- JWT secrets
-
-- OAuth credentials
-
-Create:
-
-.env.example
-
-==================================================
-
-3. WEBSITE STRUCTURE
-
-==================================================
-
-Create these major areas:
-
-CUSTOMER WEBSITE
-
-/
-
-Home
-
-/products
-
-All Products
-
-/category/flowers
-
-Flowers
-
-/category/cakes
-
-Cakes
-
-/category/plants
-
-Plants
-
-/category/gifts
-
-Gifts
-
-/category/combo
-
-Combos
-
-/category/personalized
+Flowers Forever is designed to feel like a premium Indian gifting marketplace with a polished shopping experience, trust-building UX, rich product discovery, and a strong delivery flow for occasions like birthdays, anniversaries, weddings, gifting, and home styling.
 
 Personalized Gifts
 

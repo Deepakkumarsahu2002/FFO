@@ -59,15 +59,31 @@ function ForgotPasswordPage() {
 
           <form
             className="mt-6 space-y-4"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
               if (!/^\S+@\S+\.\S+$/.test(email)) {
                 toast.error("Enter a valid email address");
                 return;
               }
 
-              setSubmitted(true);
-              toast.success("Reset link request received");
+              try {
+                const apiBase = (import.meta.env.VITE_API_URL ?? "http://localhost:4000").replace(/\/$/, "");
+                const response = await fetch(`${apiBase}/api/auth/forgot-password`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ email }),
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                  throw new Error(payload?.message ?? "Unable to send reset email");
+                }
+
+                setSubmitted(true);
+                toast.success(payload?.message ?? "Reset link request received");
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "Unable to send reset email");
+              }
             }}
           >
             <Field label="Email address">

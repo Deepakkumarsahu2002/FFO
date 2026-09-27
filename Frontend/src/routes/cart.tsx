@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Minus, Plus, Trash2, ShoppingBag, Heart, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { useShop, computeTotals } from "@/store/shop";
+import { useAccount } from "@/store/account";
 import { inr } from "@/lib/format";
 import { useCatalog, useProducts } from "@/store/catalog";
 import { ProductRail } from "@/components/site/ProductRail";
+import { StoreProductImage } from "@/components/site/StoreProductImage";
+import { useShallow } from "zustand/react/shallow";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -21,8 +24,9 @@ export const Route = createFileRoute("/cart")({
 });
 
 function CartPage() {
+  const navigate = useNavigate();
   const allProducts = useProducts();
-  const coupons = useCatalog((s) => s.coupons.filter((c) => c.active));
+  const coupons = useCatalog(useShallow((s) => s.coupons.filter((c) => c.active)));
   const { items, setQty, removeItem, coupon, applyCoupon, clearCoupon, toggleWishlist } = useShop();
   const totals = computeTotals(items, coupon);
   const [code, setCode] = useState("");
@@ -74,7 +78,12 @@ function CartPage() {
           {items.map((item) => (
             <div key={item.productId} className="flex gap-4 rounded-xl border bg-card p-3">
               <Link to="/product/$slug" params={{ slug: item.slug }} className="shrink-0">
-                <img src={item.image} alt={item.name} className="size-28 rounded-lg object-cover" />
+                <StoreProductImage
+                  src={item.image}
+                  productId={item.productId}
+                  alt={item.name}
+                  className="size-28 rounded-lg object-cover"
+                />
               </Link>
               <div className="flex-1">
                 <Link
@@ -205,12 +214,16 @@ function CartPage() {
                 <Row label="Total payable" value={inr(totals.total)} bold />
               </div>
             </dl>
-            <Link
-              to="/checkout"
+            <button
+              type="button"
+              onClick={() => {
+                const account = useAccount.getState();
+                navigate({ to: account.user?.id && account.token ? "/checkout" : "/account" });
+              }}
               className="mt-4 grid h-12 place-items-center rounded-xl bg-primary text-sm font-bold uppercase tracking-wide text-primary-foreground"
             >
               Proceed to checkout
-            </Link>
+            </button>
           </div>
         </aside>
       </div>

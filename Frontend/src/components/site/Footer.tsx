@@ -49,8 +49,8 @@ export function Footer() {
             <img src={BRAND_LOGO} alt="Flowers Forever logo" className="h-12 w-auto object-contain" />
           </div>
           <p className="mt-3 max-w-sm text-sm text-primary-foreground/70">
-            Make Every Moment Bloom. Hand-crafted bouquets, freshly baked cakes, plants and
-            thoughtful gifts, delivered across India — often the very same day.
+            Make Every Moment Bloom. Hand-crafted bouquets, DIY kits and home décor delivered to
+            valid PIN codes across India, with faster options in Bengaluru.
           </p>
           <div className="mt-5 flex gap-2">
             {SOCIAL_LINKS.map(({ icon: Icon, href, label }) => (

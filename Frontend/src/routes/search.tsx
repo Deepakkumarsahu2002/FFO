@@ -59,7 +59,7 @@ function searchLive(q: string) {
   const term = q.trim().toLowerCase();
   if (!term) return [];
   return liveProducts().filter((p) =>
-    [p.name, p.category, p.subcategory, p.color, ...(p.occasions ?? [])]
+    [p.name, p.category, p.subcategory, p.color]
       .join(" ")
       .toLowerCase()
       .includes(term),

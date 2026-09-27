@@ -5,13 +5,18 @@ import { cn } from "@/lib/utils";
 import { inr, discountPct } from "@/lib/format";
 import type { Product } from "@/data/";
 import { useShop } from "@/store/shop";
+import { StoreProductImage } from "./StoreProductImage";
 
 export function ProductCard({ product, className }: { product: Product; className?: string }) {
   const toggleWishlist = useShop((s) => s.toggleWishlist);
   const wishlisted = useShop((s) => s.wishlist.includes(product.id));
   const addItem = useShop((s) => s.addItem);
+  const destinationPincode = useShop((s) => s.pincode);
   const off = discountPct(product.price, product.mrp);
   const outOfStock = product.stock <= 0;
+  const secondaryImage = product.images[1] && product.images[1] !== product.images[0]
+    ? product.images[1]
+    : null;
 
   return (
     <article
@@ -25,21 +30,30 @@ export function ProductCard({ product, className }: { product: Product; classNam
         params={{ slug: product.slug }}
         className="relative block aspect-square overflow-hidden bg-cream"
       >
-        <img
+        <StoreProductImage
           src={product.images[0]}
+          productId={product.id}
+          category={product.category}
           alt={product.name}
           loading="lazy"
           width={912}
           height={912}
-          className="h-full w-full object-cover transition-opacity duration-500 group-hover:opacity-0"
+          className={cn(
+            "h-full w-full object-cover",
+            secondaryImage && "transition-opacity duration-500 group-hover:opacity-0",
+          )}
         />
-        <img
-          src={product.images[1]}
-          alt=""
-          aria-hidden
-          loading="lazy"
-          className="absolute inset-0 h-full w-full scale-105 object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-        />
+        {secondaryImage && (
+          <StoreProductImage
+            src={secondaryImage}
+            productId={product.id}
+            category={product.category}
+            alt=""
+            aria-hidden
+            loading="lazy"
+            className="absolute inset-0 h-full w-full scale-105 object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+          />
+        )}
         {off > 0 && (
           <span className="absolute left-2 top-2 rounded-md bg-sale px-2 py-1 text-[11px] font-semibold text-primary-foreground">
             {off}% OFF
@@ -99,7 +113,9 @@ export function ProductCard({ product, className }: { product: Product; classNam
 
         <p className="mt-auto flex items-center gap-1 pt-1 text-[11px] text-muted-foreground">
           <Truck className="size-3.5" />
-          {product.sameDay ? "Same day delivery" : "Earliest tomorrow"}
+          {destinationPincode.startsWith("560")
+            ? product.sameDay ? "Same/next day in Bengaluru" : "Next day in Bengaluru"
+            : "Delivery across India"}
         </p>
 
         <button

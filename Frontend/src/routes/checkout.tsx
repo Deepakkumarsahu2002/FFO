@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Check, CreditCard, Lock, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
@@ -6,6 +6,7 @@ import { useShop, computeTotals } from "@/store/shop";
 import { useAccount, type Address } from "@/store/account";
 import { inr } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { StoreProductImage } from "@/components/site/StoreProductImage";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -38,17 +39,63 @@ const EMPTY_ADDRESS = {
   pincode: "",
 };
 
+function addressToForm(address: Address) {
+  return {
+    label: address.label,
+    name: address.name,
+    phone: address.phone,
+    line1: address.line1,
+    line2: address.line2 ?? "",
+    city: address.city,
+    state: address.state,
+    pincode: address.pincode,
+  };
+}
+
 function CheckoutPage() {
   const navigate = useNavigate();
   const { items, coupon, clearCart } = useShop();
-  const { addresses, addAddress, placeOrder, user } = useAccount();
+  const { addresses, addAddress, loadAddresses, placeOrder, user } = useAccount();
   const totals = computeTotals(items, coupon);
 
   const [step, setStep] = useState(1);
-  const [selected, setSelected] = useState<string | null>(addresses[0]?.id ?? null);
+  const [selected, setSelected] = useState<string | null>(null);
   const [form, setForm] = useState({ ...EMPTY_ADDRESS, name: user?.name ?? "", phone: user?.phone ?? "" });
   const [payment, setPayment] = useState("upi");
   const [placing, setPlacing] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    const account = useAccount.getState();
+    if (!account.user?.id || !account.token) {
+      navigate({ to: "/account" });
+      return;
+    }
+    setAuthChecked(true);
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    void loadAddresses(user.id).catch((error) => {
+      toast.error(error instanceof Error ? error.message : "Could not load saved addresses");
+    });
+  }, [loadAddresses, user?.id]);
+
+  useEffect(() => {
+    const address = addresses.find((saved) => saved.id === selected) ?? addresses[0];
+    if (!address) return;
+    setSelected(address.id);
+    setForm({
+      label: address.label,
+      name: address.name,
+      phone: address.phone,
+      line1: address.line1,
+      line2: address.line2 ?? "",
+      city: address.city,
+      state: address.state,
+      pincode: address.pincode,
+    });
+  }, [addresses]);
 
   if (items.length === 0) {
     return (
@@ -65,21 +112,29 @@ function CheckoutPage() {
     );
   }
 
+  if (!authChecked) {
+    return <div className="container-x py-16 text-center text-sm text-muted-foreground">Checking your account…</div>;
+  }
+
   const codFee = payment === "cod" ? 49 : 0;
   const grandTotal = totals.total + codFee;
 
-  function saveAddress() {
+  async function saveAddress() {
     if (!form.name || form.phone.length !== 10 || !form.line1 || form.pincode.length !== 6) {
       toast.error("Fill name, 10-digit phone, address and 6-digit pincode");
       return;
     }
-    const a = addAddress(form);
-    setSelected(a.id);
-    setForm({ ...EMPTY_ADDRESS });
-    toast.success("Address saved");
+    try {
+      const address = await addAddress(form);
+      setSelected(address.id);
+      setForm(addressToForm(address));
+      toast.success("Address saved");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save address");
+    }
   }
 
-  function confirm() {
+  async function confirm() {
     const address: Address | undefined = addresses.find((a) => a.id === selected);
     if (!address) {
       toast.error("Choose a delivery address");
@@ -87,8 +142,9 @@ function CheckoutPage() {
       return;
     }
     setPlacing(true);
-    setTimeout(() => {
-      const order = placeOrder({
+
+    try {
+      const order = await placeOrder({
         items,
         total: grandTotal,
         address,
@@ -125,10 +181,13 @@ function CheckoutPage() {
         },
       });
       clearCart();
-      setPlacing(false);
       toast.success("Order placed!");
       navigate({ to: "/orders", search: { placed: order.id } });
-    }, 900);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not place order");
+    } finally {
+      setPlacing(false);
+    }
   }
 
   return (
@@ -171,7 +230,10 @@ function CheckoutPage() {
                           name="address"
                           className="sr-only"
                           checked={selected === a.id}
-                          onChange={() => setSelected(a.id)}
+                          onChange={() => {
+                            setSelected(a.id);
+                            setForm(addressToForm(a));
+                          }}
                         />
                         <p className="font-semibold">
                           {a.label} · {a.name}
@@ -188,30 +250,47 @@ function CheckoutPage() {
               )}
 
               <div className="grid gap-3 rounded-lg bg-cream p-4 sm:grid-cols-2">
-                <p className="text-sm font-semibold sm:col-span-2">Add a new address</p>
-                <Input label="Full name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+                <p className="text-sm font-semibold sm:col-span-2">
+                  {selected ? "Selected delivery address" : "Add a new address"}
+                </p>
+                <Input readOnly={Boolean(selected)} label="Full name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
                 <Input
                   label="Phone"
                   value={form.phone}
                   onChange={(v) => setForm({ ...form, phone: v.replace(/\D/g, "").slice(0, 10) })}
+                  readOnly={Boolean(selected)}
                 />
-                <Input label="Address line 1" value={form.line1} onChange={(v) => setForm({ ...form, line1: v })} />
-                <Input label="Landmark (optional)" value={form.line2} onChange={(v) => setForm({ ...form, line2: v })} />
-                <Input label="City" value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
-                <Input label="State" value={form.state} onChange={(v) => setForm({ ...form, state: v })} />
+                <Input readOnly={Boolean(selected)} label="Address line 1" value={form.line1} onChange={(v) => setForm({ ...form, line1: v })} />
+                <Input readOnly={Boolean(selected)} label="Landmark (optional)" value={form.line2} onChange={(v) => setForm({ ...form, line2: v })} />
+                <Input readOnly={Boolean(selected)} label="City" value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
+                <Input readOnly={Boolean(selected)} label="State" value={form.state} onChange={(v) => setForm({ ...form, state: v })} />
                 <Input
                   label="Pincode"
                   value={form.pincode}
                   onChange={(v) => setForm({ ...form, pincode: v.replace(/\D/g, "").slice(0, 6) })}
+                  readOnly={Boolean(selected)}
                 />
-                <Input label="Label" value={form.label} onChange={(v) => setForm({ ...form, label: v })} />
-                <button
-                  type="button"
-                  onClick={saveAddress}
-                  className="h-11 rounded-lg border border-primary text-sm font-semibold text-primary sm:col-span-2"
-                >
-                  Save address
-                </button>
+                <Input readOnly={Boolean(selected)} label="Label" value={form.label} onChange={(v) => setForm({ ...form, label: v })} />
+                {selected ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelected(null);
+                      setForm({ ...EMPTY_ADDRESS, name: user?.name ?? "", phone: user?.phone ?? "" });
+                    }}
+                    className="h-11 rounded-lg border border-primary text-sm font-semibold text-primary sm:col-span-2"
+                  >
+                    Add a new address
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void saveAddress()}
+                    className="h-11 rounded-lg border border-primary text-sm font-semibold text-primary sm:col-span-2"
+                  >
+                    Save address
+                  </button>
+                )}
               </div>
 
               <button
@@ -276,7 +355,12 @@ function CheckoutPage() {
           <ul className="mb-3 space-y-2 text-sm">
             {items.map((i) => (
               <li key={i.productId} className="flex gap-2">
-                <img src={i.image} alt="" className="size-12 rounded-md object-cover" />
+                <StoreProductImage
+                  src={i.image}
+                  productId={i.productId}
+                  alt=""
+                  className="size-12 rounded-md object-cover"
+                />
                 <span className="flex-1">
                   <span className="line-clamp-1">{i.name}</span>
                   <span className="text-xs text-muted-foreground">Qty {i.qty}</span>
@@ -314,15 +398,22 @@ function Input({
   label,
   value,
   onChange,
+  readOnly = false,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  readOnly?: boolean;
 }) {
   return (
     <label className="block text-sm">
       <span className="mb-1 block font-medium">{label}</span>
-      <input value={value} onChange={(e) => onChange(e.target.value)} className="input-base" />
+      <input
+        value={value}
+        readOnly={readOnly}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn("input-base", readOnly && "bg-muted/50 text-muted-foreground")}
+      />
     </label>
   );
 }

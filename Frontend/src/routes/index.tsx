@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CATEGORIES, OCCASIONS } from "@/data/catalog";
+import { CATEGORIES } from "@/data/catalog";
 import { useProducts } from "@/store/catalog";
 import { IMAGES } from "@/data/images";
 import { ProductRail } from "@/components/site/ProductRail";
@@ -29,13 +29,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Same-day delivery of hand-tied bouquets, freshly baked cakes, indoor plants and premium gift hampers across Mumbai, Delhi, Bangalore and 200+ Indian cities.",
+          "Delivery to valid PIN codes across India, with same-day or next-day options in Bengaluru.",
       },
       { property: "og:title", content: "Flowers Forever — Make Every Moment Bloom" },
       {
         property: "og:description",
         content:
-          "Hand-crafted bouquets, cakes, plants and gifts with same-day delivery across India.",
+          "Hand-crafted bouquets, DIY kits and home décor delivered across India.",
       },
     ],
   }),
@@ -71,7 +71,7 @@ const HERO_SLIDES = [
 
 const WHY = [
   { icon: Leaf, title: "Fresh & Quality Assured", text: "Sourced daily from partner farms." },
-  { icon: Truck, title: "Same Day Delivery", text: "Order by 6 PM in 200+ cities." },
+  { icon: Truck, title: "Fast Bengaluru Delivery", text: "Same-day or next-day options, based on order time and available slots." },
   { icon: ShieldCheck, title: "Secure Payments", text: "UPI, cards and net banking." },
   { icon: RefreshCcw, title: "Easy Returns", text: "Replacement for damaged gifts." },
   { icon: Headphones, title: "Customer Support", text: "7 days a week, real humans." },
@@ -145,7 +145,7 @@ function Home() {
         <div className="container-x grid items-center gap-8 py-10 lg:grid-cols-2 lg:py-16">
           <div className="order-2 lg:order-1">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              <Sparkles className="size-3.5" /> Same day delivery in 200+ cities
+              <Sparkles className="size-3.5" /> India-wide PIN delivery · Fast Bengaluru options
             </span>
             <h1 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">
               Beautiful Gifts.
@@ -174,7 +174,7 @@ function Home() {
             <dl className="mt-8 flex gap-8">
               {[
                 ["2 Lakh+", "Happy gifters"],
-                ["200+", "Cities served"],
+                ["All India", "Valid PIN codes"],
                 ["4.7★", "Average rating"],
               ].map(([v, l]) => (
                 <div key={l}>
@@ -327,59 +327,30 @@ function Home() {
       </section>
 
       <ProductRail
-        title="Fresh Flowers"
-        subtitle="Cut this morning, arranged by hand"
-        products={products.filter((p) => p.category === "flowers").slice(0, 10)}
+        title="Pipe Cleaner Supplies"
+        subtitle="Craft essentials for handmade floral designs"
+        products={products.filter((p) => p.category === "pipe-cleaner-supplies").slice(0, 10)}
         viewAllTo="/category/$slug"
-        viewAllParams={{ slug: "flowers" }}
+        viewAllParams={{ slug: "pipe-cleaner-supplies" }}
       />
 
-      {/* Occasions */}
-      <section className="container-x py-8">
-        <h2 className="section-title mb-4">Shop by Occasion</h2>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-          {OCCASIONS.slice(0, 12).map((o) => (
-            <Link
-              key={o}
-              to="/products"
-              search={{ occasion: o } as never}
-              className="rounded-xl border bg-card px-3 py-4 text-center text-sm font-medium shadow-card transition-colors hover:border-primary/40 hover:text-primary"
-            >
-              {o}
-            </Link>
-          ))}
-        </div>
-      </section>
-
       <ProductRail
-        title="Cakes for Every Celebration"
-        products={products.filter((p) => p.category === "cakes").slice(0, 10)}
+        title="Ready Bouquets"
+        products={products.filter((p) => p.category === "ready-bouquets").slice(0, 10)}
         viewAllTo="/category/$slug"
-        viewAllParams={{ slug: "cakes" }}
+        viewAllParams={{ slug: "ready-bouquets" }}
       />
       <ProductRail
-        title="Plants That Keep Giving"
-        products={products.filter((p) => p.category === "plants").slice(0, 10)}
+        title="DIY Flower Kits"
+        products={products.filter((p) => p.category === "diy-flower-kits").slice(0, 10)}
         viewAllTo="/category/$slug"
-        viewAllParams={{ slug: "plants" }}
+        viewAllParams={{ slug: "diy-flower-kits" }}
       />
       <ProductRail
-        title="Gift Hampers"
-        products={products.filter((p) => p.category === "gifts").slice(0, 10)}
+        title="Home Decor"
+        products={products.filter((p) => p.category === "home-decor").slice(0, 10)}
         viewAllTo="/category/$slug"
-        viewAllParams={{ slug: "gifts" }}
-      />
-      <ProductRail
-        title="Personalized Gifts"
-        products={products.filter((p) => p.category === "personalized").slice(0, 10)}
-        viewAllTo="/category/$slug"
-        viewAllParams={{ slug: "personalized" }}
-      />
-      <ProductRail
-        title="Combo Gifts"
-        products={products.filter((p) => p.category === "combo").slice(0, 10)}
-        viewAllTo="/category/$slug"
-        viewAllParams={{ slug: "combo" }}
+        viewAllParams={{ slug: "home-decor" }}
       />
       <ProductRail
         title="The Premium Collection"

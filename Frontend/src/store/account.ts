@@ -2,6 +2,29 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CartItem } from "./shop";
 
+const API_BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:4000").replace(/\/$/, "");
+
+async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = useAccount.getState().token;
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init.headers ?? {}),
+    },
+  });
+
+  const text = await res.text();
+  const payload = text ? JSON.parse(text) : null;
+
+  if (!res.ok) {
+    throw new Error(payload?.message ?? "Request failed");
+  }
+
+  return payload as T;
+}
+
 export interface Address {
   id: string;
   label: string;
@@ -60,28 +83,26 @@ export interface Order {
 }
 
 export interface User {
+  id?: string;
   name: string;
   email: string;
   phone: string;
 }
 
-export interface RegisteredUser extends User {
-  password: string;
-}
-
 interface AccountState {
   user: User | null;
+  token: string | null;
   addresses: Address[];
   orders: Order[];
-  registeredUsers: RegisteredUser[];
-  login: (user: User) => void;
-  register: (input: Omit<RegisteredUser, "email"> & { email: string; password: string }) => User | null;
-  loginWithEmailAndPassword: (email: string, password: string) => boolean;
+  register: (input: Omit<User, "email"> & { email: string; password: string }) => Promise<User | null>;
+  loginWithEmailAndPassword: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  addAddress: (a: Omit<Address, "id">) => Address;
-  removeAddress: (id: string) => void;
-  placeOrder: (o: Omit<Order, "id" | "placedAt" | "status">) => Order;
-  cancelOrder: (id: string) => void;
+  loadAddresses: (userId: string) => Promise<Address[]>;
+  loadOrders: (userId: string) => Promise<Order[]>;
+  addAddress: (a: Omit<Address, "id">) => Promise<Address>;
+  removeAddress: (id: string) => Promise<void>;
+  placeOrder: (o: Omit<Order, "id" | "placedAt" | "status">) => Promise<Order>;
+  cancelOrder: (id: string) => Promise<Order>;
   setOrderStatus: (id: string, status: Order["status"]) => void;
 }
 
@@ -89,76 +110,188 @@ export const useAccount = create<AccountState>()(
   persist(
     (set, get) => ({
       user: null,
+      token: null,
       addresses: [],
       orders: [],
-      registeredUsers: [],
 
-      login: (user) => set({ user }),
-      register: ({ name, email, phone, password }) => {
+      register: async ({ name, email, phone, password }) => {
         const normalizedEmail = email.trim().toLowerCase();
         if (!name || !/^\S+@\S+\.\S+$/.test(normalizedEmail) || phone.length !== 10 || password.length < 6) {
           return null;
         }
 
-        if (get().registeredUsers.some((u) => u.email.toLowerCase() === normalizedEmail)) {
-          return null;
-        }
+        const data = await apiRequest<{ token: string; user: { id: string; name: string; email: string; phone: string } }>(
+          "/api/auth/register",
+          {
+            method: "POST",
+            body: JSON.stringify({ name, email: normalizedEmail, phone, password }),
+          },
+        );
 
-        const user = { name, email: normalizedEmail, phone };
+        const user = { id: data.user.id, name: data.user.name, email: data.user.email, phone: data.user.phone };
         set((state) => ({
           user,
-          registeredUsers: [{ ...user, password }, ...state.registeredUsers],
+          token: data.token,
+          orders: [],
+          addresses: [],
         }));
         return user;
       },
-      loginWithEmailAndPassword: (email, password) => {
+      loginWithEmailAndPassword: async (email, password) => {
         const normalizedEmail = email.trim().toLowerCase();
-        const match = get().registeredUsers.find(
-          (u) => u.email.toLowerCase() === normalizedEmail && u.password === password,
+
+        const data = await apiRequest<{ token: string; user: { id: string; name: string; email: string; phone: string } }>(
+          "/api/auth/login",
+          {
+            method: "POST",
+            body: JSON.stringify({ email: normalizedEmail, password }),
+          },
         );
 
-        if (!match) {
-          return false;
-        }
-
-        set({
-          user: { name: match.name, email: match.email, phone: match.phone },
-        });
+        const user = { id: data.user.id, name: data.user.name, email: data.user.email, phone: data.user.phone };
+        set({ user, token: data.token, orders: [], addresses: [] });
         return true;
       },
-      logout: () => set({ user: null }),
+      logout: () => set({ user: null, token: null, addresses: [], orders: [] }),
 
-      addAddress: (a) => {
-        const address = { ...a, id: `addr_${Date.now()}` };
-        set((s) => ({ addresses: [address, ...s.addresses] }));
-        return address;
+      loadAddresses: async (userId) => {
+        const data = await apiRequest<{ addresses: Address[] }>(`/api/account/${userId}`);
+        const addresses = data.addresses ?? [];
+        set({ addresses });
+        return addresses;
       },
 
-      removeAddress: (id) =>
-        set((s) => ({ addresses: s.addresses.filter((a) => a.id !== id) })),
+      loadOrders: async (userId) => {
+        if (!get().token) {
+          set({ user: null, addresses: [], orders: [] });
+          throw new Error("Your saved login has expired. Please log in again.");
+        }
 
-      placeOrder: (o) => {
-        const order: Order = {
-          ...o,
-          id: `FF${Date.now().toString().slice(-8)}`,
-          placedAt: new Date().toISOString(),
-          status: "Placed",
+        try {
+          const data = await apiRequest<{ items: Order[] }>(`/api/orders/${encodeURIComponent(userId)}`);
+          const orders = (data.items ?? []).map((order) => ({
+            ...order,
+            customer: order.customer ?? {
+              name: order.address.name,
+              email: get().user?.email ?? "",
+              phone: order.address.phone,
+              city: order.address.city,
+              pincode: order.address.pincode,
+            },
+            deliveryDate: order.deliveryDate ?? "As soon as possible",
+            slot: order.slot ?? "Standard delivery",
+          })).sort((a, b) => new Date(b.placedAt).getTime() - new Date(a.placedAt).getTime());
+          set({ orders });
+          return orders;
+        } catch (error) {
+          if (error instanceof Error && error.message.includes("Session expired")) {
+            set({ user: null, token: null, addresses: [], orders: [] });
+          }
+          throw error;
+        }
+      },
+
+      addAddress: async (a) => {
+        const userId = get().user?.id;
+        if (!userId) {
+          const address = { ...a, id: `addr_${Date.now()}` };
+          set((s) => ({ addresses: [address, ...s.addresses] }));
+          return address;
+        }
+
+        try {
+          const data = await apiRequest<{ address: Address }>(`/api/account/${userId}/addresses`, {
+            method: "POST",
+            body: JSON.stringify(a),
+          });
+          set((s) => ({ addresses: [data.address, ...s.addresses] }));
+          return data.address;
+        } catch {
+          const address = { ...a, id: `addr_${Date.now()}` };
+          set((s) => ({ addresses: [address, ...s.addresses] }));
+          return address;
+        }
+      },
+
+      removeAddress: async (id) => {
+        const userId = get().user?.id;
+        if (userId) {
+          try {
+            await apiRequest(`/api/account/${userId}/addresses/${id}`, { method: "DELETE" });
+          } catch {
+            // local fallback below
+          }
+        }
+
+        set((s) => ({ addresses: s.addresses.filter((a) => a.id !== id) }));
+      },
+
+      placeOrder: async (o) => {
+        const payload = {
+          userId: get().user?.id ?? "guest-user",
+          items: o.items.map((item) => ({
+            productId: item.productId,
+            slug: item.slug,
+            name: item.name,
+            image: item.image,
+            price: item.price,
+            mrp: item.mrp,
+            qty: item.qty,
+          })),
+          address: o.address,
+          payment: o.payment,
+          totals: o.totals ?? {
+            subtotal: 0,
+            discount: 0,
+            delivery: 0,
+            tax: 0,
+            total: o.total,
+          },
         };
-        set((s) => ({ orders: [order, ...s.orders] }));
-        return order;
+
+        try {
+          const data = await apiRequest<{ order: Order }>("/api/orders", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          set((s) => ({ orders: [data.order, ...s.orders] }));
+          return data.order;
+        } catch {
+          const order: Order = {
+            ...o,
+            id: `FF${Date.now().toString().slice(-8)}`,
+            placedAt: new Date().toISOString(),
+            status: "Placed",
+          };
+          set((s) => ({ orders: [order, ...s.orders] }));
+          return order;
+        }
       },
 
-      cancelOrder: (id) =>
-        set((s) => ({
-          orders: s.orders.map((o) => (o.id === id ? { ...o, status: "Cancelled" } : o)),
-        })),
+      cancelOrder: async (id) => {
+        const data = await apiRequest<{ order: Order }>(`/api/orders/${encodeURIComponent(id)}/cancel`, {
+          method: "PATCH",
+        });
+        set((state) => ({
+          orders: state.orders.map((order) => (order.id === id ? { ...order, ...data.order } : order)),
+        }));
+        return data.order;
+      },
 
       setOrderStatus: (id, status) =>
         set((s) => ({
           orders: s.orders.map((o) => (o.id === id ? { ...o, status } : o)),
         })),
     }),
-    { name: "ff-account" },
+    {
+      name: "ff-account",
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        addresses: state.addresses,
+        orders: [],
+      }),
+    },
   ),
 );
 

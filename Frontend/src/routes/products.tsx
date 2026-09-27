@@ -1,11 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useProducts } from "@/store/catalog";
+import { hydrateCatalogFromBackend, useCatalog } from "@/store/catalog";
 import { ProductListing } from "@/components/site/ProductListing";
 
 export interface ProductSearch {
   category?: string;
   sub?: string;
-  occasion?: string;
   min?: number;
   max?: number;
   sort?: string;
@@ -16,7 +15,6 @@ export const Route = createFileRoute("/products")({
   validateSearch: (search: Record<string, unknown>): ProductSearch => ({
     category: typeof search.category === "string" ? search.category : undefined,
     sub: typeof search.sub === "string" ? search.sub : undefined,
-    occasion: typeof search.occasion === "string" ? search.occasion : undefined,
     min: search.min != null ? Number(search.min) : undefined,
     max: search.max != null ? Number(search.max) : undefined,
     sort: typeof search.sort === "string" ? search.sort : undefined,
@@ -28,7 +26,7 @@ export const Route = createFileRoute("/products")({
       {
         name: "description",
         content:
-          "Browse the full Flowers Forever range: bouquets, cakes, plants, hampers, personalised gifts and combos, filtered by occasion, price and delivery speed.",
+          "Browse the full Flowers Forever range of craft supplies, bouquets, DIY kits and home décor, filtered by category, subcategory and price.",
       },
       { property: "og:title", content: "Shop All Gifts — Flowers Forever" },
       {
@@ -42,7 +40,9 @@ export const Route = createFileRoute("/products")({
 
 function AllProducts() {
   const search = Route.useSearch();
-  const products = useProducts();
+  const products = useCatalog((state) => state.products);
+  const isLoaded = useCatalog((state) => state.isLoaded);
+  const loadError = useCatalog((state) => state.loadError);
   return (
     <ProductListing
       allProducts={products}
@@ -50,6 +50,9 @@ function AllProducts() {
       description="Handpicked gifting, across every category"
       breadcrumb={[{ label: "All Products" }]}
       initial={search}
+      isLoading={!isLoaded && !loadError}
+      loadError={loadError}
+      onRetry={() => void hydrateCatalogFromBackend()}
     />
   );
 }

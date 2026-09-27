@@ -15,10 +15,11 @@ import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import { inr, discountPct } from "@/lib/format";
-import { CITIES, getProduct } from "@/data/catalog";
+import { checkDeliveryPincode, type PincodeDeliveryResult } from "@/lib/delivery";
 import { useProductBySlug, useProducts } from "@/store/catalog";
 import { useShop, productById } from "@/store/shop";
 import { ProductRail } from "@/components/site/ProductRail";
+import { StoreProductImage } from "@/components/site/StoreProductImage";
 
 const ADDONS = [
   { id: "card", label: "Greeting card", price: 99 },
@@ -28,11 +29,11 @@ const ADDONS = [
 ];
 
 export const Route = createFileRoute("/product/$slug")({
-  loader: ({ params }) => {
-    const product = getProduct(params.slug);
-    if (!product) return { slug: params.slug, name: null, shortDescription: "" };
-    return { slug: product.slug, name: product.name, shortDescription: product.shortDescription };
-  },
+  loader: ({ params }) => ({
+    slug: params.slug,
+    name: null,
+    shortDescription: "",
+  }),
   head: ({ loaderData }) => {
     if (!loaderData || !loaderData.name) {
       return {
@@ -82,7 +83,8 @@ function ProductPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [qty, setQty] = useState(1);
   const [pin, setPin] = useState(useShop.getState().pincode);
-  const [pinResult, setPinResult] = useState<{ ok: boolean; city?: string } | null>(null);
+  const [pinResult, setPinResult] = useState<PincodeDeliveryResult | null>(null);
+  const [checkingPin, setCheckingPin] = useState(false);
   const [message, setMessage] = useState("");
   const [addons, setAddons] = useState<string[]>([]);
 
@@ -92,6 +94,7 @@ function ProductPage() {
   const viewProduct = useShop((s) => s.viewProduct);
   const recentlyViewed = useShop((s) => s.recentlyViewed);
   const setCartOpen = useShop((s) => s.setCartOpen);
+  const setLocation = useShop((s) => s.setLocation);
 
   useEffect(() => {
     if (!product) return;
@@ -128,9 +131,24 @@ function ProductPage() {
     .filter((p): p is NonNullable<typeof p> => Boolean(p) && p!.id !== product.id)
     .slice(0, 10);
 
-  function checkPin() {
-    const match = CITIES.find((c) => c.pincodes.includes(pin));
-    setPinResult({ ok: Boolean(match) || pin.length === 6, city: match?.name });
+  async function checkPin() {
+    setCheckingPin(true);
+    try {
+      const result = await checkDeliveryPincode(pin);
+      setPinResult(result);
+      if (result.available) setLocation(result.city, pin);
+    } catch (error) {
+      setPinResult({
+        available: false,
+        pincode: pin,
+        city: "",
+        sameDay: false,
+        nextDay: false,
+        estimate: error instanceof Error ? error.message : "Could not check this PIN code.",
+      });
+    } finally {
+      setCheckingPin(false);
+    }
   }
 
   function handleAdd(buyNow = false) {
@@ -202,14 +220,22 @@ function ProductPage() {
                     activeImage === i ? "border-primary" : "border-transparent",
                   )}
                 >
-                  <img src={img} alt={`${product.name} view ${i + 1}`} className="aspect-square object-cover" />
+                  <StoreProductImage
+                    src={img}
+                    productId={product.id}
+                    category={product.category}
+                    alt={`${product.name} view ${i + 1}`}
+                    className="aspect-square object-cover"
+                  />
                 </button>
               ))}
             </div>
             <div className="min-w-0 flex-1">
               <div className="group overflow-hidden rounded-2xl border bg-cream">
-                <img
+                <StoreProductImage
                   src={product.images[activeImage]}
+                  productId={product.id}
+                  category={product.category}
                   alt={product.name}
                   width={912}
                   height={912}
@@ -227,7 +253,13 @@ function ProductPage() {
                       activeImage === i ? "border-primary" : "border-transparent",
                     )}
                   >
-                    <img src={img} alt="" className="size-full object-cover" />
+                    <StoreProductImage
+                      src={img}
+                      productId={product.id}
+                      category={product.category}
+                      alt=""
+                      className="size-full object-cover"
+                    />
                   </button>
                 ))}
               </div>
@@ -290,26 +322,29 @@ function ProductPage() {
                 />
                 <button
                   type="button"
-                  onClick={checkPin}
-                  disabled={pin.length !== 6}
+                  onClick={() => void checkPin()}
+                  disabled={pin.length !== 6 || checkingPin}
                   className="h-10 rounded-lg border border-primary px-4 text-sm font-semibold text-primary disabled:opacity-40"
                 >
-                  Check
+                  {checkingPin ? "Checking…" : "Check"}
                 </button>
               </div>
               {pinResult && (
                 <ul className="mt-3 space-y-1 text-sm">
-                  <li className="flex items-center gap-1.5 text-leaf">
-                    <Check className="size-4" /> Deliverable{pinResult.city ? ` in ${pinResult.city}` : ""}
+                  <li className={`flex items-center gap-1.5 ${pinResult.available ? "text-leaf" : "text-destructive"}`}>
+                    {pinResult.available && <Check className="size-4" />}
+                    {pinResult.available ? `Deliverable in ${pinResult.city}` : pinResult.estimate}
                   </li>
-                  {product.sameDay && (
-                    <li className="flex items-center gap-1.5 text-leaf">
-                      <Check className="size-4" /> Same day delivery available
-                    </li>
+                  {pinResult.available && (
+                    <>
+                      <li className="flex items-center gap-1.5 text-muted-foreground">
+                        <Truck className="size-4" /> {pinResult.estimate}
+                      </li>
+                      <li className="flex items-center gap-1.5 text-leaf">
+                        <Check className="size-4" /> Free delivery on orders above ₹1,499
+                      </li>
+                    </>
                   )}
-                  <li className="flex items-center gap-1.5 text-leaf">
-                    <Check className="size-4" /> Free delivery on orders above ₹1,499
-                  </li>
                 </ul>
               )}
             </div>
@@ -417,7 +452,8 @@ function ProductPage() {
 
             <div className="mt-5 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
               <p className="rounded-lg border p-3">
-                <Truck className="mx-auto mb-1 size-4 text-primary" /> Same day delivery
+                <Truck className="mx-auto mb-1 size-4 text-primary" />
+                {pin.startsWith("560") ? "Same/next day in Bengaluru" : "Delivery across India"}
               </p>
               <p className="rounded-lg border p-3">
                 <ShieldCheck className="mx-auto mb-1 size-4 text-primary" /> Secure payment
@@ -458,8 +494,9 @@ function ProductPage() {
               <AccordionTrigger>Delivery information</AccordionTrigger>
               <AccordionContent>
                 <p className="text-sm text-muted-foreground">
-                  Orders placed before 6 PM qualify for same-day delivery in serviceable pincodes.
-                  Midnight delivery lands between 11 PM and 11:59 PM. Delivery is free on orders
+                  We deliver to valid PIN codes across India. Bengaluru PIN codes beginning 560
+                  may qualify for same-day or next-day delivery, depending on order time and slot
+                  availability. Delivery is free on orders
                   above ₹1,499.
                 </p>
               </AccordionContent>

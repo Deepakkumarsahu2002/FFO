@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Package, CheckCircle2, Truck, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -5,10 +6,14 @@ import { useAccount } from "@/store/account";
 import { useShop } from "@/store/shop";
 import { inr } from "@/lib/format";
 import { productById } from "@/store/shop";
+import { StoreProductImage } from "@/components/site/StoreProductImage";
+import { OrderActionsMenu } from "@/components/site/OrderActionsMenu";
 
 export const Route = createFileRoute("/orders")({
-  validateSearch: (search: Record<string, unknown>): { placed?: string } =>
-    typeof search.placed === "string" ? { placed: search.placed } : {},
+  validateSearch: (search: Record<string, unknown>): { placed?: string; track?: string } => ({
+    placed: typeof search.placed === "string" ? search.placed : undefined,
+    track: typeof search.track === "string" ? search.track : undefined,
+  }),
 
   head: () => ({
     meta: [
@@ -31,9 +36,21 @@ const STATUS_ICON = {
 } as const;
 
 function OrdersPage() {
-  const { placed } = Route.useSearch();
-  const { orders, cancelOrder } = useAccount();
+  const { placed, track } = Route.useSearch();
+  const { orders, loadOrders, user } = useAccount();
   const addItem = useShop((s) => s.addItem);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    void loadOrders(user.id).catch((error) => {
+      toast.error(error instanceof Error ? error.message : "Could not load your orders");
+    });
+  }, [loadOrders, user?.id]);
+
+  useEffect(() => {
+    if (!track || !orders.some((order) => order.id === track)) return;
+    document.getElementById(`order-${track}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [orders, track]);
 
   return (
     <div className="container-x py-6">
@@ -66,7 +83,11 @@ function OrdersPage() {
           {orders.map((o) => {
             const Icon = STATUS_ICON[o.status];
             return (
-              <li key={o.id} className="rounded-xl border bg-card p-4">
+              <li
+                key={o.id}
+                id={`order-${o.id}`}
+                className={`rounded-xl border bg-card p-4 ${track === o.id ? "border-primary ring-2 ring-primary/20" : ""}`}
+              >
                 <div className="flex flex-wrap items-center gap-3 border-b pb-3">
                   <span className="font-semibold">#{o.id}</span>
                   <span
@@ -80,12 +101,18 @@ function OrdersPage() {
                     Placed {new Date(o.placedAt).toLocaleDateString("en-IN")}
                   </span>
                   <span className="ml-auto font-bold">{inr(o.total)}</span>
+                  <OrderActionsMenu order={o} onCancel={cancelOrder} />
                 </div>
 
                 <ul className="mt-3 space-y-2">
                   {o.items.map((i) => (
                     <li key={i.productId} className="flex items-center gap-3 text-sm">
-                      <img src={i.image} alt="" className="size-14 rounded-lg object-cover" />
+                      <StoreProductImage
+                        src={i.image}
+                        productId={i.productId}
+                        alt=""
+                        className="size-14 rounded-lg object-cover"
+                      />
                       <span className="flex-1">
                         <Link to="/product/$slug" params={{ slug: i.slug }} className="font-medium hover:text-primary">
                           {i.name}
@@ -117,18 +144,6 @@ function OrdersPage() {
                     To {o.address.name}, {o.address.city} {o.address.pincode}
                   </span>
                   <span>Paid via {o.payment}</span>
-                  {o.status === "Placed" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        cancelOrder(o.id);
-                        toast("Order cancelled");
-                      }}
-                      className="ml-auto rounded-lg border px-3 py-1.5 font-semibold text-destructive"
-                    >
-                      Cancel order
-                    </button>
-                  )}
                 </div>
               </li>
             );

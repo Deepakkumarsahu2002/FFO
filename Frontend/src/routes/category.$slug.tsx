@@ -1,6 +1,6 @@
 import { createFileRoute, notFound, Link } from "@tanstack/react-router";
-import { CATEGORIES, type CategorySlug } from "@/data/catalog";
-import { useCategoryProducts } from "@/store/catalog";
+import { CATEGORIES } from "@/data/catalog";
+import { hydrateCatalogFromBackend, useCatalog, useCategoryProducts } from "@/store/catalog";
 import { ProductListing } from "@/components/site/ProductListing";
 
 export const Route = createFileRoute("/category/$slug")({
@@ -15,8 +15,8 @@ export const Route = createFileRoute("/category/$slug")({
         meta: [{ title: "Category unavailable — Flowers Forever" }, { name: "robots", content: "noindex" }],
       };
     }
-    const title = `${loaderData.name} Online — Same Day Delivery | Flowers Forever`;
-    const description = `${loaderData.tagline}. Shop ${loaderData.name.toLowerCase()} with same-day delivery across India from Flowers Forever.`;
+    const title = `${loaderData.name} Online — India-wide Delivery | Flowers Forever`;
+    const description = `${loaderData.tagline}. Shop ${loaderData.name.toLowerCase()} with delivery to valid PIN codes across India.`;
     return {
       meta: [
         { title },
@@ -44,14 +44,19 @@ export const Route = createFileRoute("/category/$slug")({
 
 function CategoryPage() {
   const { slug, name, tagline } = Route.useLoaderData();
-  const products = useCategoryProducts(slug as CategorySlug);
+  const products = useCategoryProducts(slug);
+  const isLoaded = useCatalog((state) => state.isLoaded);
+  const loadError = useCatalog((state) => state.loadError);
   return (
     <ProductListing
       allProducts={products}
       title={name}
       description={tagline}
       breadcrumb={[{ label: name }]}
-      lockCategory
+      lockedCategory={slug}
+      isLoading={!isLoaded && !loadError}
+      loadError={loadError}
+      onRetry={() => void hydrateCatalogFromBackend()}
     />
   );
 }
