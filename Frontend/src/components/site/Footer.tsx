@@ -50,7 +50,7 @@ export function Footer() {
           </div>
           <p className="mt-3 max-w-sm text-sm text-primary-foreground/70">
             Make Every Moment Bloom. Hand-crafted bouquets, DIY kits and home décor delivered to
-            valid PIN codes across India, with faster options in Bengaluru.
+            valid PIN codes across India, with faster options in Banglore.
           </p>
           <div className="mt-5 flex gap-2">
             {SOCIAL_LINKS.map(({ icon: Icon, href, label }) => (
