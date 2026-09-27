@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: flowers-forever-api
+    runtime: node
+    rootDir: Backend
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_PASSCODE
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: onboarding@resend.dev
+      - key: EMAIL_REPLY_TO
+        sync: false
+      - key: APP_NAME
+        value: Flowers Forever
