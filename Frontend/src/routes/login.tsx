@@ -27,7 +27,7 @@ function LoginPage() {
   return (
     <div className="container-x py-10 sm:py-16">
       <div className="mx-auto grid max-w-6xl gap-6 overflow-hidden rounded-[30px] border border-primary/10 bg-gradient-to-br from-[#fffaf5] via-white to-[#f5efe7] p-4 shadow-card md:grid-cols-[1.12fr_0.88fr]">
-        <div className="relative overflow-hidden rounded-[26px]">
+        <div className="order-2 relative overflow-hidden rounded-[26px] md:order-1">
           <img
             src={resolveImage("hero-bouquet")}
             alt="Fresh flower arrangement"
@@ -58,7 +58,7 @@ function LoginPage() {
           </div>
         </div>
 
-        <div className="rounded-[26px] border border-[#f1e1d7] bg-white/90 p-5 shadow-[0_18px_55px_rgba(74,41,18,0.08)] backdrop-blur-sm sm:p-7">
+        <div className="order-1 rounded-[26px] border border-[#f1e1d7] bg-white/90 p-5 shadow-[0_18px_55px_rgba(74,41,18,0.08)] backdrop-blur-sm sm:p-7 md:order-2">
           <Link
             to="/"
             className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary"

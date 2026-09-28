@@ -32,7 +32,7 @@ function RegisterPage() {
   return (
     <div className="container-x py-10 sm:py-16">
       <div className="mx-auto grid max-w-6xl gap-6 overflow-hidden rounded-[30px] border border-primary/10 bg-gradient-to-br from-[#fffaf5] via-white to-[#f4efe7] p-4 shadow-card md:grid-cols-[1.02fr_0.98fr]">
-        <div className="relative overflow-hidden rounded-[26px] bg-gradient-to-br from-[#f4e2d4] via-[#fff8f3] to-[#efe3d8] p-6 sm:p-8">
+        <div className="order-2 relative overflow-hidden rounded-[26px] bg-gradient-to-br from-[#f4e2d4] via-[#fff8f3] to-[#efe3d8] p-6 sm:p-8 md:order-1">
           <div className="absolute -right-8 -top-8 size-32 rounded-full bg-primary/10 blur-2xl" />
           <div className="absolute -bottom-10 left-10 size-40 rounded-full bg-[#f4c6a6]/30 blur-3xl" />
 
@@ -80,7 +80,7 @@ function RegisterPage() {
           </div>
         </div>
 
-        <div className="rounded-[26px] border border-[#f1e1d7] bg-white/90 p-5 shadow-[0_18px_55px_rgba(74,41,18,0.08)] backdrop-blur-sm sm:p-7">
+        <div className="order-1 rounded-[26px] border border-[#f1e1d7] bg-white/90 p-5 shadow-[0_18px_55px_rgba(74,41,18,0.08)] backdrop-blur-sm sm:p-7 md:order-2">
           <Link
             to="/"
             className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary"
