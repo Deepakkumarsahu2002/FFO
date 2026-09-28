@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  useRouterState,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -18,7 +19,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { hydrateCatalogFromBackend } from "@/store/catalog";
 
 const BRAND_LOGO = "/ff-logo.png";
-const BRAND_SITE_URL = "https://ffo-txt.pages.dev";
+const BRAND_SITE_URL = "https://flowersforever.pages.dev";
 
 
 function NotFoundComponent() {
@@ -135,10 +136,15 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   useEffect(() => {
     void hydrateCatalogFromBackend();
   }, []);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -146,7 +152,9 @@ function RootComponent() {
         <Header />
         <main className="flex-1 pb-16 lg:pb-0">
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
+          <div key={pathname} className="page-enter">
+            <Outlet />
+          </div>
         </main>
         <Footer />
         <MobileTabBar />

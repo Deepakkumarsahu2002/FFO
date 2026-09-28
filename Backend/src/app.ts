@@ -4,7 +4,7 @@ import { env } from './config.js';
 import catalogRoutes from './routes/catalog.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import accountRoutes from './routes/account.routes.js';
-import ordersRoutes from './routes/orders.routes.js';
+import ordersRoutes, { handleRazorpayWebhook } from './routes/orders.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 
 const app = express();
@@ -35,6 +35,7 @@ app.use(
     credentials: true,
   }),
 );
+app.post('/api/webhooks/razorpay', express.raw({ type: 'application/json' }), handleRazorpayWebhook);
 app.use(express.json({ limit: '12mb' }));
 
 app.get('/api/health', (_req, res) => {

@@ -80,7 +80,7 @@ router.get('/session', (_req, res) => {
 router.get('/overview', async (_req, res) => {
   try {
     const [orders, products, users] = await Promise.all([
-      Order.find().lean(),
+      Order.find({ $or: [{ paymentStatus: { $in: ['paid', 'refund_pending', 'refunded'] } }, { paymentStatus: { $exists: false } }] }).lean(),
       Product.find().lean(),
       User.find().lean(),
     ]);
@@ -102,7 +102,9 @@ router.get('/overview', async (_req, res) => {
 
 router.get('/orders', async (_req, res) => {
   try {
-    const items = await Order.find().sort({ placedAt: -1 }).lean();
+    const items = await Order.find({ $or: [{ paymentStatus: { $in: ['paid', 'refund_pending', 'refunded'] } }, { paymentStatus: { $exists: false } }] })
+      .sort({ placedAt: -1 })
+      .lean();
     return res.json({ items });
   } catch (error) {
     console.error('Failed to load admin orders:', error);
@@ -114,6 +116,15 @@ router.patch('/orders/:id/status', async (req, res) => {
   const parsedStatus = z.enum(['Placed', 'Preparing', 'Out for delivery', 'Delivered', 'Cancelled']).safeParse(req.body?.status);
   if (!parsedStatus.success) {
     return res.status(400).json({ message: 'Invalid status payload.' });
+  }
+
+  const currentOrder = await Order.findOne({ id: req.params.id }).select('paymentStatus').lean();
+  if (!currentOrder) return res.status(404).json({ message: 'Order not found.' });
+  if (['pending', 'processing', 'refund_pending', 'refunded', 'failed'].includes(currentOrder.paymentStatus ?? '')) {
+    return res.status(409).json({ message: 'This payment is not in a state that allows admin fulfillment updates.' });
+  }
+  if (parsedStatus.data === 'Cancelled' && currentOrder.paymentStatus === 'paid') {
+    return res.status(409).json({ message: 'Paid orders must use the verified refund workflow before cancellation.' });
   }
 
   try {
@@ -136,7 +147,9 @@ router.get('/customers', async (_req, res) => {
   try {
     const [users, orders] = await Promise.all([
       User.find().select('_id name email phone addresses').lean(),
-      Order.find().select('userId total status placedAt address').lean(),
+      Order.find({ $or: [{ paymentStatus: { $in: ['paid', 'refund_pending', 'refunded'] } }, { paymentStatus: { $exists: false } }] })
+        .select('userId total status placedAt address')
+        .lean(),
     ]);
 
     type CustomerSummary = {

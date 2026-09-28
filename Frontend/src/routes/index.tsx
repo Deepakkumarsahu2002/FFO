@@ -165,7 +165,7 @@ function Home() {
               </Link>
               <Link
                 to="/category/$slug"
-                params={{ slug: "flowers" }}
+                params={{ slug: "ready-bouquets" }}
                 className="inline-flex h-12 items-center rounded-xl border border-primary/30 px-7 text-sm font-semibold text-primary hover:bg-primary/5"
               >
                 Explore Collections

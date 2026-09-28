@@ -66,6 +66,9 @@ function AdminPage() {
   const authed = useAdmin((s) => s.authed);
   const [tab, setTab] = useState<Tab>("dashboard");
   const [sessionReady, setSessionReady] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState("");
+  const [ordersReload, setOrdersReload] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -87,20 +90,30 @@ function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (!authed) return;
+    if (!authed) {
+      setOrdersLoading(false);
+      return;
+    }
     let active = true;
+    setOrdersLoading(true);
+    setOrdersError("");
     void adminApiRequest<{ items: Order[] }>("/orders")
       .then(({ items }) => {
         if (active) useAccount.setState({ orders: items });
       })
       .catch((error) => {
-        if (active)
+        if (active) {
+          setOrdersError(error instanceof Error ? error.message : "Could not load admin orders");
           toast.error(error instanceof Error ? error.message : "Could not load admin orders");
+        }
+      })
+      .finally(() => {
+        if (active) setOrdersLoading(false);
       });
     return () => {
       active = false;
     };
-  }, [authed]);
+  }, [authed, ordersReload]);
 
   if (!sessionReady) {
     return (
@@ -114,41 +127,75 @@ function AdminPage() {
 
   return (
     <div className="container-x py-8">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-primary/10 pb-5">
         <div>
-          <h1 className="font-display text-2xl font-bold">FFO Studio Admin</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage inventory, orders, promos and décor store settings.
-          </p>
+          <p className="text-[11px] font-bold uppercase text-primary">Flowers Forever · Operations</p>
+          <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">Store management</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Inventory, orders, customers and storefront settings.</p>
         </div>
-        <button
-          onClick={() => useAdmin.getState().signOut()}
-          className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold"
-        >
-          <LogOut className="size-4" /> Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          <span className="hidden items-center gap-2 rounded-full border bg-card px-3 py-2 text-xs font-medium text-muted-foreground sm:inline-flex">
+            <Lock className="size-3.5 text-leaf" /> Private workspace
+          </span>
+          <button
+            onClick={() => useAdmin.getState().signOut()}
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg border bg-card px-4 py-2 text-sm font-semibold transition-colors hover:bg-muted"
+          >
+            <LogOut className="size-4" /> Sign out
+          </button>
+        </div>
       </header>
 
-      <nav className="mt-6 flex flex-wrap gap-2 border-b pb-3">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={cn(
-              "flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition",
-              tab === t.id ? "bg-primary text-primary-foreground" : "hover:bg-muted",
-            )}
-          >
-            <t.icon className="size-4" /> {t.label}
-          </button>
-        ))}
+      <nav
+        aria-label="Admin sections"
+        className="-mx-4 mt-6 overflow-x-auto border-b bg-background/90 px-4 pb-2 backdrop-blur sm:mx-0 sm:border-b-0 sm:bg-transparent sm:px-0"
+      >
+        <div role="tablist" aria-label="Admin sections" className="flex min-w-max gap-2 sm:flex-wrap">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              id={`admin-tab-${t.id}`}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              aria-controls="admin-tab-panel"
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-primary",
+                tab === t.id
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  : "border-transparent bg-card/60 text-muted-foreground hover:border-border hover:bg-card hover:text-foreground",
+              )}
+            >
+              <t.icon className="size-4" /> {t.label}
+            </button>
+          ))}
+        </div>
       </nav>
 
-      <div className="mt-6">
+      <div id="admin-tab-panel" role="tabpanel" aria-labelledby={`admin-tab-${tab}`} className="mt-6 min-h-72">
         {tab === "dashboard" && <Dashboard />}
         {tab === "customers" && <CustomersAdmin />}
         {tab === "products" && <ProductsAdmin />}
-        {tab === "orders" && <OrdersAdmin />}
+        {tab === "orders" &&
+          (ordersLoading ? (
+            <div className="flex min-h-56 items-center justify-center gap-2 rounded-xl border bg-card text-sm text-muted-foreground">
+              <LoaderCircle className="size-4 animate-spin" /> Loading orders…
+            </div>
+          ) : ordersError ? (
+            <div className="rounded-xl border bg-card p-8 text-center">
+              <p className="text-sm text-destructive">{ordersError}</p>
+              <button
+                type="button"
+                onClick={() => setOrdersReload((value) => value + 1)}
+                className="mt-3 rounded-lg border px-4 py-2 text-sm font-semibold"
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <OrdersAdmin />
+          ))}
         {tab === "coupons" && <CouponsAdmin />}
         {tab === "settings" && <SettingsAdmin />}
       </div>
@@ -214,7 +261,9 @@ function Dashboard() {
   const products = useCatalog((s) => s.products);
   const orders = useAccount((s) => s.orders);
 
-  const revenue = orders.filter((o) => o.status !== "Cancelled").reduce((s, o) => s + o.total, 0);
+  const revenue = orders
+    .filter((order) => order.status !== "Cancelled" && !["refund_pending", "refunded"].includes(order.paymentStatus ?? ""))
+    .reduce((sum, order) => sum + order.total, 0);
   const lowStock = products.filter((p) => p.stock <= 5);
   const activeCustomers = new Set(
     orders.map((o) => o.customer?.phone || o.address.phone).filter(Boolean),
@@ -230,7 +279,11 @@ function Dashboard() {
       const label = date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
       const dayOrders = orders.filter((o) => {
         const when = new Date(o.placedAt);
-        return when.toDateString() === date.toDateString() && o.status !== "Cancelled";
+        return (
+          when.toDateString() === date.toDateString() &&
+          o.status !== "Cancelled" &&
+          !["refund_pending", "refunded"].includes(o.paymentStatus ?? "")
+        );
       });
 
       return {
@@ -1067,7 +1120,7 @@ function OrdersAdmin() {
               </span>
               <select
                 value={o.status}
-                disabled={updatingOrderId === o.id}
+                disabled={updatingOrderId === o.id || o.paymentStatus === "refund_pending" || o.paymentStatus === "refunded"}
                 onChange={async (e) => {
                   const status = e.target.value as Order["status"];
                   if (updatingOrderId) return;
@@ -1133,6 +1186,7 @@ function OrdersAdmin() {
                 Payment & totals
               </p>
               <p className="text-sm">{o.payment}</p>
+              {o.paymentStatus && <p className="text-xs capitalize text-muted-foreground">Payment {o.paymentStatus.replaceAll("_", " ")}</p>}
               <p className="text-sm text-muted-foreground">
                 Total: {inr(o.totals?.total ?? o.total)}
               </p>

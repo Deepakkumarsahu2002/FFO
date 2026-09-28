@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Package, CheckCircle2, Truck, Clock, LoaderCircle, XCircle } from "lucide-react";
+import { Package, CheckCircle2, Truck, Clock, LoaderCircle, XCircle, CircleAlert } from "lucide-react";
 import { toast } from "sonner";
 import { useAccount } from "@/store/account";
 import { useShop } from "@/store/shop";
@@ -28,6 +28,9 @@ export const Route = createFileRoute("/orders")({
 });
 
 const STATUS_ICON = {
+  "Payment Pending": Clock,
+  "Payment Processing": LoaderCircle,
+  "Payment Failed": CircleAlert,
   Placed: Clock,
   Preparing: Package,
   "Out for delivery": Truck,
@@ -105,7 +108,7 @@ function OrdersPage() {
                   <span className="font-semibold">#{o.id}</span>
                   <span
                     className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      o.status === "Cancelled"
+                      o.status === "Cancelled" || o.status === "Payment Failed"
                         ? "bg-destructive/10 text-destructive"
                         : "bg-leaf/10 text-leaf"
                     }`}

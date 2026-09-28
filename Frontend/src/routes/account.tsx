@@ -115,7 +115,7 @@ function AccountPage() {
             </Link>
 
             <h1 className="mt-5 font-display text-3xl font-bold text-foreground sm:text-4xl">
-              Your journey with starts here
+              Your Flowers Forever journey starts here
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               First-time shoppers create an account and returning customers log in to track orders,

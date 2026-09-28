@@ -132,6 +132,30 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+
+  button:not(:disabled),
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input,
+  select,
+  textarea {
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px oklch(0.37 0.128 12 / 12%);
+    outline: none;
+  }
+
   h1,
   h2,
   h3,
@@ -183,6 +207,32 @@
   outline: none;
   &:focus {
     border-color: var(--primary);
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-enter 220ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

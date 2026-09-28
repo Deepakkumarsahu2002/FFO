@@ -17,11 +17,11 @@ export function MobileTabBar() {
           <li key={label}>
             <Link
               to={to}
-              className="flex flex-col items-center gap-0.5 py-2 text-[10px] text-muted-foreground"
+              className="group flex min-h-14 flex-col items-center justify-center gap-0.5 py-2 text-[10px] text-muted-foreground transition-colors hover:text-foreground focus-visible:rounded-md"
               activeProps={{ className: "text-primary font-semibold" }}
               activeOptions={{ exact: to === "/" }}
             >
-              <Icon className="size-5" />
+              <Icon className="size-5 transition-transform group-hover:-translate-y-0.5 group-active:scale-95" />
               {label}
             </Link>
           </li>

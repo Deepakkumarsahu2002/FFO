@@ -15,7 +15,7 @@ export function OrderActionsMenu({
   order,
   onCancel,
 }: {
-  order: Pick<Order, "id" | "status">;
+  order: Pick<Order, "id" | "status" | "paymentStatus">;
   onCancel: (id: string) => Promise<unknown>;
 }) {
   const [cancelling, setCancelling] = useState(false);
@@ -24,8 +24,12 @@ export function OrderActionsMenu({
     if (order.status !== "Placed" || cancelling) return;
     setCancelling(true);
     try {
-      await onCancel(order.id);
-      toast.success(`Order #${order.id} cancelled`);
+      const cancelledOrder = await onCancel(order.id) as Order | undefined;
+      toast.success(
+        cancelledOrder?.paymentStatus === "refund_pending"
+          ? `Order #${order.id} cancelled. Your Razorpay refund is processing.`
+          : `Order #${order.id} cancelled`,
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not cancel order");
     } finally {

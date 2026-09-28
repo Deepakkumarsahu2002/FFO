@@ -46,11 +46,15 @@ export function Footer() {
       <div className="container-x grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-5">
         <div className="lg:col-span-2">
           <div className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-[#f5f1eb]/90 p-3 shadow-[0_10px_30px_rgba(255,255,255,0.08)] backdrop-blur-sm">
-            <img src={BRAND_LOGO} alt="Flowers Forever logo" className="h-12 w-auto object-contain" />
+            <img
+              src={BRAND_LOGO}
+              alt="Flowers Forever logo"
+              className="h-12 w-auto object-contain"
+            />
           </div>
           <p className="mt-3 max-w-sm text-sm text-primary-foreground/70">
             Make Every Moment Bloom. Hand-crafted bouquets, DIY kits and home décor delivered to
-            valid PIN codes across India, with faster options in Banglore.
+            valid PIN codes across India, with faster options in Bengaluru.
           </p>
           <div className="mt-5 flex gap-2">
             {SOCIAL_LINKS.map(({ icon: Icon, href, label }) => (
@@ -78,7 +82,12 @@ export function Footer() {
 
         <FooterCol title="Shop">
           {CATEGORIES.map((c) => (
-            <Link key={c.slug} to="/category/$slug" params={{ slug: c.slug }} className="footer-link">
+            <Link
+              key={c.slug}
+              to="/category/$slug"
+              params={{ slug: c.slug }}
+              className="footer-link"
+            >
               {c.name}
             </Link>
           ))}

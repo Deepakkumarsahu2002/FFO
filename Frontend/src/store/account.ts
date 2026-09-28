@@ -67,11 +67,20 @@ export interface Order {
   placedAt: string;
   items: CartItem[];
   total: number;
-  status: "Placed" | "Preparing" | "Out for delivery" | "Delivered" | "Cancelled";
+  status:
+    | "Payment Pending"
+    | "Payment Processing"
+    | "Payment Failed"
+    | "Placed"
+    | "Preparing"
+    | "Out for delivery"
+    | "Delivered"
+    | "Cancelled";
   address: Address;
   deliveryDate: string;
   slot: string;
   payment: string;
+  paymentStatus?: "pending" | "processing" | "paid" | "failed" | "refund_pending" | "refunded";
   customer: CustomerDetails;
   shipping?: {
     address: Address;
@@ -81,6 +90,21 @@ export interface Order {
   };
   totals?: OrderTotalsSnapshot;
   metadata?: OrderMeta;
+}
+
+export interface RazorpayOrderInit {
+  orderId: string;
+  razorpayOrderId: string;
+  amount: number;
+  currency: "INR";
+  keyId: string;
+  totals: OrderTotalsSnapshot;
+}
+
+export interface RazorpayCheckoutInput {
+  checkoutId: string;
+  items: Array<Pick<CartItem, "productId" | "qty"> & Partial<Pick<CartItem, "variant" | "message" | "addons">>>;
+  address: Address;
 }
 
 export interface User {
@@ -106,7 +130,13 @@ interface AccountState {
   loadOrders: (userId: string) => Promise<Order[]>;
   addAddress: (a: Omit<Address, "id">) => Promise<Address>;
   removeAddress: (id: string) => Promise<void>;
-  placeOrder: (o: Omit<Order, "id" | "placedAt" | "status">) => Promise<Order>;
+  createRazorpayOrder: (input: RazorpayCheckoutInput) => Promise<RazorpayOrderInit>;
+  verifyRazorpayPayment: (input: {
+    orderId: string;
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+  }) => Promise<Order>;
   cancelOrder: (id: string) => Promise<Order>;
   setOrderStatus: (id: string, status: Order["status"]) => void;
 }
@@ -258,41 +288,52 @@ export const useAccount = create<AccountState>()(
         set((s) => ({ addresses: s.addresses.filter((a) => a.id !== id) }));
       },
 
-      placeOrder: async (o) => {
-        const payload = {
-          userId: get().user?.id ?? "guest-user",
-          items: o.items.map((item) => ({
-            productId: item.productId,
-            slug: item.slug,
-            name: item.name,
-            image: item.image,
-            price: item.price,
-            mrp: item.mrp,
-            qty: item.qty,
-          })),
-          address: o.address,
-          payment: o.payment,
-          totals: o.totals ?? {
-            subtotal: 0,
-            discount: 0,
-            delivery: 0,
-            tax: 0,
-            total: o.total,
-          },
+      createRazorpayOrder: async (input) => {
+        return apiRequest<RazorpayOrderInit>("/api/orders/razorpay/create", {
+          method: "POST",
+          body: JSON.stringify(input),
+        });
+      },
+
+      verifyRazorpayPayment: async (input) => {
+        type PaymentResult = {
+          status: "paid" | "processing" | "pending" | "failed" | "refund_pending" | "refunded";
+          order?: Order;
+          stockUpdates?: Array<{ id: string; stock: number }>;
         };
 
-        const data = await apiRequest<{
-          order: Order;
-          stockUpdates?: Array<{ id: string; stock: number }>;
-        }>("/api/orders", {
+        let result = await apiRequest<PaymentResult>("/api/orders/razorpay/verify", {
           method: "POST",
-          body: JSON.stringify(payload),
+          body: JSON.stringify(input),
         });
-        for (const stockUpdate of data.stockUpdates ?? []) {
+
+        for (let attempt = 0; result.status === "processing" && attempt < 30; attempt += 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 1_000));
+          result = await apiRequest<PaymentResult>(
+            `/api/orders/razorpay/status/${encodeURIComponent(input.orderId)}`,
+          );
+        }
+
+        if (result.status !== "paid" || !result.order) {
+          if (result.status === "refund_pending") {
+            throw new Error("Payment was received, but stock changed. Your refund is being processed.");
+          }
+          if (result.status === "refunded") {
+            throw new Error("Payment was refunded because the product is no longer available.");
+          }
+          if (result.status === "processing") {
+            throw new Error("Payment confirmation is taking longer than expected. Check My Orders before retrying.");
+          }
+          throw new Error("Payment has not been confirmed. Please retry or check My Orders.");
+        }
+
+        for (const stockUpdate of result.stockUpdates ?? []) {
           useCatalog.getState().updateProduct(stockUpdate.id, { stock: stockUpdate.stock });
         }
-        set((s) => ({ orders: [data.order, ...s.orders] }));
-        return data.order;
+        set((state) => ({
+          orders: [result.order!, ...state.orders.filter((order) => order.id !== result.order!.id)],
+        }));
+        return result.order;
       },
 
       cancelOrder: async (id) => {

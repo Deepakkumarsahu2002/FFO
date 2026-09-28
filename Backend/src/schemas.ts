@@ -56,4 +56,25 @@ export const orderSchema = z.object({
   }),
 });
 
+export const razorpayCheckoutSchema = z.object({
+  checkoutId: z.string().uuid(),
+  items: z.array(
+    z.object({
+      productId: z.string().min(1),
+      qty: z.number().int().min(1).max(20),
+      variant: z.string().max(120).optional(),
+      message: z.string().max(500).optional(),
+      addons: z.array(z.string().max(120)).max(10).optional(),
+    }),
+  ).min(1).max(30),
+  address: addressSchema,
+});
+
+export const razorpayVerificationSchema = z.object({
+  orderId: z.string().min(1),
+  razorpayOrderId: z.string().min(1),
+  razorpayPaymentId: z.string().min(1),
+  razorpaySignature: z.string().min(1),
+});
+
 export const statusSchema = z.enum(['Placed', 'Preparing', 'Out for delivery', 'Delivered', 'Cancelled']);
