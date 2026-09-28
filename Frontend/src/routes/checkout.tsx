@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, CreditCard, Lock, ShoppingBag } from "lucide-react";
+import { Check, CheckCircle2, CreditCard, Home, LoaderCircle, Lock, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { useShop, computeTotals } from "@/store/shop";
-import { useAccount, type Address } from "@/store/account";
+import { useAccount, type Address, type Order } from "@/store/account";
 import { inr } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { StoreProductImage } from "@/components/site/StoreProductImage";
@@ -52,6 +52,94 @@ function addressToForm(address: Address) {
   };
 }
 
+function OrderConfirmation({ order }: { order: Order }) {
+  const navigate = useNavigate();
+  const [secondsLeft, setSecondsLeft] = useState(10);
+  const cashOnDelivery = order.payment.toLowerCase().includes("cash on delivery");
+
+  useEffect(() => {
+    const redirectTimer = window.setTimeout(() => {
+      void navigate({ to: "/" });
+    }, 10_000);
+    const countdownTimer = window.setInterval(() => {
+      setSecondsLeft((seconds) => Math.max(seconds - 1, 0));
+    }, 1_000);
+
+    return () => {
+      window.clearTimeout(redirectTimer);
+      window.clearInterval(countdownTimer);
+    };
+  }, [navigate]);
+
+  return (
+    <div className="container-x grid min-h-[60vh] place-items-center py-10">
+      <section className="w-full max-w-xl rounded-xl border bg-card p-6 text-center sm:p-9" aria-live="polite">
+        <CheckCircle2 className="mx-auto size-14 text-leaf" />
+        <p className="mt-5 text-xs font-bold uppercase text-leaf">Order confirmed by Flowers Forever</p>
+        <h1 className="mt-2 font-display text-3xl font-bold">Your order is successful</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          We received your order details and saved your order.
+        </p>
+
+        <div className="mt-6 rounded-lg bg-muted/50 p-4">
+          <p className="text-xs font-semibold uppercase text-muted-foreground">Your unique order number</p>
+          <p className="mt-1 font-display text-2xl font-bold text-primary">#{order.id}</p>
+        </div>
+
+        <dl className="mt-5 grid gap-3 text-left text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-muted-foreground">Order total</dt>
+            <dd className="font-semibold">{inr(order.total)}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Payment method</dt>
+            <dd className="font-semibold">{order.payment}</dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-muted-foreground">Payment status</dt>
+            <dd className="font-semibold">
+              {cashOnDelivery ? "Due on delivery" : "Online payment is not processed by this checkout yet"}
+            </dd>
+          </div>
+        </dl>
+
+        <div className="mt-5 border-t pt-4 text-left">
+          <h2 className="text-sm font-semibold">Order details</h2>
+          <ul className="mt-2 space-y-2 text-sm">
+            {order.items.map((item) => (
+              <li key={item.productId} className="flex justify-between gap-4">
+                <span>{item.name}</span>
+                <span className="shrink-0 text-muted-foreground">Qty {item.qty}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+            Delivering to {order.address.name}: {order.address.line1}
+            {order.address.line2 ? `, ${order.address.line2}` : ""}, {order.address.city}, {order.address.state} {order.address.pincode}
+          </p>
+        </div>
+
+        {!cashOnDelivery && (
+          <p className="mt-4 text-left text-xs leading-relaxed text-muted-foreground">
+            Your order is saved, but this checkout does not yet connect to a payment provider to collect or verify online payments.
+          </p>
+        )}
+
+        <p className="mt-6 text-sm text-muted-foreground">
+          Returning to the home page in <span className="font-semibold text-foreground">{secondsLeft}</span> seconds.
+        </p>
+        <button
+          type="button"
+          onClick={() => void navigate({ to: "/" })}
+          className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground"
+        >
+          <Home className="size-4" /> Continue to home
+        </button>
+      </section>
+    </div>
+  );
+}
+
 function CheckoutPage() {
   const navigate = useNavigate();
   const { items, coupon, clearCart } = useShop();
@@ -64,6 +152,7 @@ function CheckoutPage() {
   const [payment, setPayment] = useState("upi");
   const [placing, setPlacing] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     const account = useAccount.getState();
@@ -96,6 +185,24 @@ function CheckoutPage() {
       pincode: address.pincode,
     });
   }, [addresses]);
+
+  if (confirmedOrder) {
+    return <OrderConfirmation order={confirmedOrder} />;
+  }
+
+  if (placing) {
+    return (
+      <div className="container-x grid min-h-[60vh] place-items-center py-10">
+        <section className="max-w-md text-center" aria-live="polite" aria-busy="true">
+          <LoaderCircle className="mx-auto size-12 animate-spin text-primary" />
+          <h1 className="mt-5 font-display text-2xl font-bold">Confirming your order</h1>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Please wait while we save your order with the backend and verify its order number. This can take a few seconds.
+          </p>
+        </section>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -180,9 +287,12 @@ function CheckoutPage() {
             .join(" | ") || "No custom message",
         },
       });
+      if (!order.id) {
+        throw new Error("The backend did not return an order number. Please contact support before retrying.");
+      }
+
       clearCart();
-      toast.success("Order placed!");
-      navigate({ to: "/orders", search: { placed: order.id } });
+      setConfirmedOrder(order);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not place order");
     } finally {
