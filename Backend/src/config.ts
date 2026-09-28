@@ -24,6 +24,8 @@ export const env = {
   jwtSecret: process.env.JWT_SECRET ?? 'flowers-forever-dev-secret',
   resendApiKey: process.env.RESEND_API_KEY ?? '',
   emailFrom: process.env.EMAIL_FROM ?? 'onboarding@resend.dev',
+  emailTestMode: process.env.EMAIL_TEST_MODE === 'true',
+  emailTestRecipient: process.env.EMAIL_TEST_RECIPIENT ?? '',
   emailReplyTo: process.env.EMAIL_REPLY_TO ?? 'flowersforeverofficial@gmail.com',
   appName: process.env.APP_NAME ?? 'Flowers Forever',
 };

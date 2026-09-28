@@ -249,23 +249,12 @@ export const useAccount = create<AccountState>()(
           },
         };
 
-        try {
-          const data = await apiRequest<{ order: Order }>("/api/orders", {
-            method: "POST",
-            body: JSON.stringify(payload),
-          });
-          set((s) => ({ orders: [data.order, ...s.orders] }));
-          return data.order;
-        } catch {
-          const order: Order = {
-            ...o,
-            id: `FF${Date.now().toString().slice(-8)}`,
-            placedAt: new Date().toISOString(),
-            status: "Placed",
-          };
-          set((s) => ({ orders: [order, ...s.orders] }));
-          return order;
-        }
+        const data = await apiRequest<{ order: Order }>("/api/orders", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        set((s) => ({ orders: [data.order, ...s.orders] }));
+        return data.order;
       },
 
       cancelOrder: async (id) => {
