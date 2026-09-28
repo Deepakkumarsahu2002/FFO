@@ -1,12 +1,16 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
+import { z } from 'zod';
 import { sendPasswordResetEmail, sendWelcomeEmail, buildResetLink } from '../lib/email.js';
 import { User } from '../models/User.js';
 import { forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema } from '../schemas.js';
+import { env } from '../config.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET ?? 'flowers-forever-dev-secret';
+const googleClient = new OAuth2Client();
 
 router.post('/register', async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
@@ -50,7 +54,7 @@ router.post('/login', async (req, res) => {
 
   try {
     const user = await User.findOne({ email: parsed.data.email.toLowerCase() });
-    if (!user) {
+    if (!user || !user.password) {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
@@ -67,6 +71,88 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ message: 'Login failed', error: String(error) });
+  }
+});
+
+router.post('/google', async (req, res) => {
+  if (!env.googleClientId) {
+    return res.status(503).json({ message: 'Google sign-in is not configured.' });
+  }
+
+  const parsed = z.object({ credential: z.string().min(1).max(8192) }).safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ message: 'A Google credential is required.' });
+  }
+
+  let googleAccount;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: parsed.data.credential,
+      audience: env.googleClientId,
+    });
+    googleAccount = ticket.getPayload();
+  } catch {
+    return res.status(401).json({ message: 'Google sign-in credential is invalid or expired.' });
+  }
+
+  if (!googleAccount?.sub || !googleAccount.email || googleAccount.email_verified !== true) {
+    return res.status(401).json({ message: 'Google did not provide a verified account email.' });
+  }
+
+  const email = googleAccount.email.trim().toLowerCase();
+
+  try {
+    let user = await User.findOne({ googleId: googleAccount.sub });
+
+    if (!user) {
+      user = await User.findOne({ email });
+
+      if (user) {
+        if (user.googleId && user.googleId !== googleAccount.sub) {
+          return res.status(409).json({ message: 'This email is linked to a different Google account.' });
+        }
+        user.googleId = googleAccount.sub;
+        if (googleAccount.picture) user.picture = googleAccount.picture;
+        await user.save();
+      } else {
+        try {
+          user = await User.create({
+            name: googleAccount.name?.trim() || email,
+            email,
+            phone: '',
+            googleId: googleAccount.sub,
+            picture: googleAccount.picture,
+            addresses: [],
+          });
+        } catch (error) {
+          if ((error as { code?: number }).code !== 11000) throw error;
+          user = await User.findOne({ $or: [{ googleId: googleAccount.sub }, { email }] });
+          if (!user || (user.googleId && user.googleId !== googleAccount.sub)) {
+            return res.status(409).json({ message: 'This Google account could not be linked safely.' });
+          }
+          user.googleId = googleAccount.sub;
+          if (googleAccount.picture) user.picture = googleAccount.picture;
+          await user.save();
+        }
+      }
+    } else if (googleAccount.picture && user.picture !== googleAccount.picture) {
+      user.picture = googleAccount.picture;
+      await user.save();
+    }
+
+    const token = jwt.sign({ sub: user._id.toString() }, JWT_SECRET, { expiresIn: '7d' });
+    return res.json({
+      token,
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        phone: user.phone ?? '',
+        picture: user.picture,
+      },
+    });
+  } catch {
+    return res.status(500).json({ message: 'Google sign-in could not be completed.' });
   }
 });
 

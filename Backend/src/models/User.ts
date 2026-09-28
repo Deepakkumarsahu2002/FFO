@@ -19,8 +19,10 @@ const userSchema = new Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true },
-    phone: { type: String, required: true },
+    password: { type: String },
+    phone: { type: String, default: '' },
+    googleId: { type: String, unique: true, sparse: true },
+    picture: { type: String },
     addresses: [addressSchema],
   },
   {

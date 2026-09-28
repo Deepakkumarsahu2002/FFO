@@ -6,6 +6,7 @@ Frontend/dist/
 # env files
 Frontend/.env
 Frontend/.env.*
+!Frontend/.env.example
 
 # OS/editor
 .DS_Store

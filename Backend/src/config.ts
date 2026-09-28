@@ -22,6 +22,7 @@ export const env = {
   adminPasscode:
     process.env.ADMIN_PASSCODE ?? (process.env.NODE_ENV === 'production' ? '' : 'ffo@2026'),
   jwtSecret: process.env.JWT_SECRET ?? 'flowers-forever-dev-secret',
+  googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
   resendApiKey: process.env.RESEND_API_KEY ?? '',
   emailFrom: process.env.EMAIL_FROM ?? 'onboarding@resend.dev',
   emailTestMode: process.env.EMAIL_TEST_MODE === 'true',

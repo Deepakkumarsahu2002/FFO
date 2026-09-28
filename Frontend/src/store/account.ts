@@ -88,6 +88,7 @@ export interface User {
   name: string;
   email: string;
   phone: string;
+  picture?: string;
 }
 
 interface AccountState {
@@ -99,6 +100,7 @@ interface AccountState {
     input: Omit<User, "email"> & { email: string; password: string },
   ) => Promise<User | null>;
   loginWithEmailAndPassword: (email: string, password: string) => Promise<boolean>;
+  loginWithGoogleCredential: (credential: string) => Promise<User>;
   logout: () => void;
   loadAddresses: (userId: string) => Promise<Address[]>;
   loadOrders: (userId: string) => Promise<Order[]>;
@@ -169,6 +171,25 @@ export const useAccount = create<AccountState>()(
         };
         set({ user, token: data.token, orders: [], addresses: [] });
         return true;
+      },
+      loginWithGoogleCredential: async (credential) => {
+        const data = await apiRequest<{
+          token: string;
+          user: { id: string; name: string; email: string; phone: string; picture?: string };
+        }>("/api/auth/google", {
+          method: "POST",
+          body: JSON.stringify({ credential }),
+        });
+
+        const user: User = {
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          phone: data.user.phone,
+          picture: data.user.picture,
+        };
+        set({ user, token: data.token, orders: [], addresses: [] });
+        return user;
       },
       logout: () => set({ user: null, token: null, addresses: [], orders: [] }),
 

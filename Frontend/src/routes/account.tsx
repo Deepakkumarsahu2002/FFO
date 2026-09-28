@@ -19,6 +19,7 @@ import { useAccount } from "@/store/account";
 import { useShop } from "@/store/shop";
 import { StoreProductImage } from "@/components/site/StoreProductImage";
 import { OrderActionsMenu } from "@/components/site/OrderActionsMenu";
+import { GoogleSignInButton } from "@/components/site/GoogleSignInButton";
 
 export const Route = createFileRoute("/account")({
   head: () => ({
@@ -136,6 +137,8 @@ function AccountPage() {
                 Log in
               </Link>
             </div>
+
+            <GoogleSignInButton />
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {[

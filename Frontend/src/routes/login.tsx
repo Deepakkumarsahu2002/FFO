@@ -4,6 +4,7 @@ import { ArrowRight, Gift, LoaderCircle, ShieldCheck, Sparkles } from "lucide-re
 import { toast } from "sonner";
 import { resolveImage } from "@/data/images";
 import { useAccount } from "@/store/account";
+import { GoogleSignInButton } from "@/components/site/GoogleSignInButton";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -155,6 +156,8 @@ function LoginPage() {
               )}
             </button>
           </form>
+
+          <GoogleSignInButton disabled={submitting} />
 
           <p className="mt-5 text-center text-xs text-muted-foreground">
             By continuing you agree to our{" "}
