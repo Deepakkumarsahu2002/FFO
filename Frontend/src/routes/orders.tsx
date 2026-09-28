@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Package, CheckCircle2, Truck, Clock, XCircle } from "lucide-react";
+import { Package, CheckCircle2, Truck, Clock, LoaderCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAccount } from "@/store/account";
 import { useShop } from "@/store/shop";
@@ -37,19 +37,28 @@ const STATUS_ICON = {
 
 function OrdersPage() {
   const { placed, track } = Route.useSearch();
-  const { orders, loadOrders, user } = useAccount();
+  const { orders, loadOrders, cancelOrder, user } = useAccount();
   const addItem = useShop((s) => s.addItem);
+  const [loading, setLoading] = useState(Boolean(user?.id));
 
   useEffect(() => {
-    if (!user?.id) return;
-    void loadOrders(user.id).catch((error) => {
-      toast.error(error instanceof Error ? error.message : "Could not load your orders");
-    });
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    void loadOrders(user.id)
+      .catch((error) => {
+        toast.error(error instanceof Error ? error.message : "Could not load your orders");
+      })
+      .finally(() => setLoading(false));
   }, [loadOrders, user?.id]);
 
   useEffect(() => {
     if (!track || !orders.some((order) => order.id === track)) return;
-    document.getElementById(`order-${track}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    document
+      .getElementById(`order-${track}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [orders, track]);
 
   return (
@@ -67,7 +76,11 @@ function OrdersPage() {
 
       <h1 className="font-display text-2xl font-bold sm:text-3xl">My Orders</h1>
 
-      {orders.length === 0 ? (
+      {loading ? (
+        <p className="mt-8 flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+          <LoaderCircle className="size-4 animate-spin" /> Loading your orders…
+        </p>
+      ) : orders.length === 0 ? (
         <div className="mt-8 grid place-items-center gap-3 rounded-xl border border-dashed py-20 text-center">
           <Package className="size-10 text-muted-foreground" />
           <p className="font-semibold">No orders yet</p>
@@ -92,7 +105,9 @@ function OrdersPage() {
                   <span className="font-semibold">#{o.id}</span>
                   <span
                     className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      o.status === "Cancelled" ? "bg-destructive/10 text-destructive" : "bg-leaf/10 text-leaf"
+                      o.status === "Cancelled"
+                        ? "bg-destructive/10 text-destructive"
+                        : "bg-leaf/10 text-leaf"
                     }`}
                   >
                     <Icon className="size-3.5" /> {o.status}
@@ -114,7 +129,11 @@ function OrdersPage() {
                         className="size-14 rounded-lg object-cover"
                       />
                       <span className="flex-1">
-                        <Link to="/product/$slug" params={{ slug: i.slug }} className="font-medium hover:text-primary">
+                        <Link
+                          to="/product/$slug"
+                          params={{ slug: i.slug }}
+                          className="font-medium hover:text-primary"
+                        >
                           {i.name}
                         </Link>
                         <span className="block text-xs text-muted-foreground">Qty {i.qty}</span>

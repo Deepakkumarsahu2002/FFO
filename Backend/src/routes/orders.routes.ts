@@ -3,10 +3,21 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config.js';
 import { sendOrderConfirmationEmail } from '../lib/email.js';
 import { Order } from '../models/Order.js';
+import { Product } from '../models/Product.js';
 import { User } from '../models/User.js';
 import { orderSchema } from '../schemas.js';
 
 const router = Router();
+
+class InventoryError extends Error {}
+
+async function restoreInventory(reservations: Array<{ productId: string; quantity: number }>) {
+  await Promise.all(
+    reservations.map(({ productId, quantity }) =>
+      Product.updateOne({ id: productId }, { $inc: { stock: quantity } }),
+    ),
+  );
+}
 
 router.get('/orders/:userId', async (req, res) => {
   const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
@@ -70,7 +81,36 @@ router.post('/orders', async (req, res) => {
     return res.status(400).json({ message: 'Invalid order payload', errors: parsed.error.flatten() });
   }
 
+  const reservations: Array<{ productId: string; quantity: number; stock: number }> = [];
+
   try {
+    const quantities = new Map<string, { quantity: number; name: string }>();
+    for (const item of parsed.data.items) {
+      const current = quantities.get(item.productId);
+      quantities.set(item.productId, {
+        quantity: (current?.quantity ?? 0) + item.qty,
+        name: item.name,
+      });
+    }
+
+    for (const [productId, item] of quantities) {
+      const product = await Product.findOneAndUpdate(
+        { id: productId, stock: { $gte: item.quantity } },
+        { $inc: { stock: -item.quantity } },
+        { new: true },
+      );
+
+      if (!product) {
+        const existing = await Product.findOne({ id: productId }).select('stock').lean();
+        if (!existing) {
+          throw new InventoryError(`${item.name} is no longer available.`);
+        }
+        throw new InventoryError(`Only ${existing.stock} unit(s) of ${item.name} are available.`);
+      }
+
+      reservations.push({ productId, quantity: item.quantity, stock: product.stock });
+    }
+
     const order = await Order.create({
       id: `FF${Date.now().toString().slice(-8)}`,
       userId: parsed.data.userId,
@@ -86,21 +126,38 @@ router.post('/orders', async (req, res) => {
       status: 'Placed',
     });
 
-    const user = await User.findById(parsed.data.userId);
-    if (user) {
-      await sendOrderConfirmationEmail(user.email, user.name, {
-        id: order.id,
-        total: order.total,
-        payment: order.payment,
-        items: order.items.map((item: { name: string; qty: number }) => ({
-          name: item.name,
-          qty: item.qty,
-        })),
-      });
+    try {
+      const user = await User.findById(parsed.data.userId);
+      if (user) {
+        await sendOrderConfirmationEmail(user.email, user.name, {
+          id: order.id,
+          total: order.total,
+          payment: order.payment,
+          items: order.items.map((item: { name: string; qty: number }) => ({
+            name: item.name,
+            qty: item.qty,
+          })),
+        });
+      }
+    } catch (emailError) {
+      console.error('Order saved but confirmation email could not be sent:', emailError);
     }
 
-    return res.status(201).json({ order });
+    return res.status(201).json({
+      order,
+      stockUpdates: reservations.map(({ productId, stock }) => ({ id: productId, stock })),
+    });
   } catch (error) {
+    if (reservations.length > 0) {
+      try {
+        await restoreInventory(reservations);
+      } catch (restoreError) {
+        console.error('Failed to restore inventory after order error:', restoreError);
+      }
+    }
+    if (error instanceof InventoryError) {
+      return res.status(409).json({ message: error.message });
+    }
     return res.status(500).json({ message: 'Could not place order', error: String(error) });
   }
 });

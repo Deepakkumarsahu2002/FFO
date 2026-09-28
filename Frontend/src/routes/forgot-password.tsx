@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, LoaderCircle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { resolveImage } from "@/data/images";
 
@@ -10,7 +10,10 @@ export const Route = createFileRoute("/forgot-password")({
       { title: "Forgot password — Flowers Forever" },
       { name: "description", content: "Reset your Flowers Forever customer password." },
       { property: "og:title", content: "Forgot password — Flowers Forever" },
-      { property: "og:description", content: "Request a password reset for your Flowers Forever account." },
+      {
+        property: "og:description",
+        content: "Request a password reset for your Flowers Forever account.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -20,6 +23,7 @@ export const Route = createFileRoute("/forgot-password")({
 function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
 
   return (
     <div className="container-x py-10 sm:py-16">
@@ -42,7 +46,10 @@ function ForgotPasswordPage() {
         </div>
 
         <div className="rounded-[26px] border border-[#f1e1d7] bg-white/90 p-5 shadow-[0_18px_55px_rgba(74,41,18,0.08)] backdrop-blur-sm sm:p-7">
-          <Link to="/" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary"
+          >
             <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Sparkles className="size-3.5" />
             </span>
@@ -66,8 +73,13 @@ function ForgotPasswordPage() {
                 return;
               }
 
+              if (sending) return;
+              setSending(true);
               try {
-                const apiBase = (import.meta.env.VITE_API_URL ?? "http://localhost:4000").replace(/\/$/, "");
+                const apiBase = (import.meta.env.VITE_API_URL ?? "http://localhost:4000").replace(
+                  /\/$/,
+                  "",
+                );
                 const response = await fetch(`${apiBase}/api/auth/forgot-password`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
@@ -83,6 +95,8 @@ function ForgotPasswordPage() {
                 toast.success(payload?.message ?? "Reset link request received");
               } catch (error) {
                 toast.error(error instanceof Error ? error.message : "Unable to send reset email");
+              } finally {
+                setSending(false);
               }
             }}
           >
@@ -99,15 +113,29 @@ function ForgotPasswordPage() {
 
             <button
               type="submit"
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold uppercase tracking-wide text-primary-foreground transition-transform hover:-translate-y-0.5"
+              disabled={sending || submitted}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold uppercase tracking-wide text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70"
             >
-              {submitted ? "Reset link sent" : "Send reset link"}
-              <ArrowRight className="size-4" />
+              {sending ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" /> Sending…
+                </>
+              ) : submitted ? (
+                "Reset link sent"
+              ) : (
+                <>
+                  Send reset link
+                  <ArrowRight className="size-4" />
+                </>
+              )}
             </button>
           </form>
 
           <div className="mt-5 flex items-center justify-between text-sm">
-            <Link to="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+            <Link
+              to="/login"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
               Back to login
             </Link>
             <span className="text-muted-foreground">Brevo-ready flow</span>

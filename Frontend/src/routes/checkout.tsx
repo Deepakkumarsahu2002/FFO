@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, CheckCircle2, CreditCard, Home, LoaderCircle, Lock, ShoppingBag } from "lucide-react";
+import {
+  Check,
+  CheckCircle2,
+  CreditCard,
+  Home,
+  LoaderCircle,
+  Lock,
+  ShoppingBag,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useShop, computeTotals } from "@/store/shop";
 import { useAccount, type Address, type Order } from "@/store/account";
@@ -73,16 +81,23 @@ function OrderConfirmation({ order }: { order: Order }) {
 
   return (
     <div className="container-x grid min-h-[60vh] place-items-center py-10">
-      <section className="w-full max-w-xl rounded-xl border bg-card p-6 text-center sm:p-9" aria-live="polite">
+      <section
+        className="w-full max-w-xl rounded-xl border bg-card p-6 text-center sm:p-9"
+        aria-live="polite"
+      >
         <CheckCircle2 className="mx-auto size-14 text-leaf" />
-        <p className="mt-5 text-xs font-bold uppercase text-leaf">Order confirmed by Flowers Forever</p>
+        <p className="mt-5 text-xs font-bold uppercase text-leaf">
+          Order confirmed by Flowers Forever
+        </p>
         <h1 className="mt-2 font-display text-3xl font-bold">Your order is successful</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           We received your order details and saved your order.
         </p>
 
         <div className="mt-6 rounded-lg bg-muted/50 p-4">
-          <p className="text-xs font-semibold uppercase text-muted-foreground">Your unique order number</p>
+          <p className="text-xs font-semibold uppercase text-muted-foreground">
+            Your unique order number
+          </p>
           <p className="mt-1 font-display text-2xl font-bold text-primary">#{order.id}</p>
         </div>
 
@@ -98,7 +113,9 @@ function OrderConfirmation({ order }: { order: Order }) {
           <div className="sm:col-span-2">
             <dt className="text-muted-foreground">Payment status</dt>
             <dd className="font-semibold">
-              {cashOnDelivery ? "Due on delivery" : "Online payment is not processed by this checkout yet"}
+              {cashOnDelivery
+                ? "Due on delivery"
+                : "Online payment is not processed by this checkout yet"}
             </dd>
           </div>
         </dl>
@@ -115,18 +132,21 @@ function OrderConfirmation({ order }: { order: Order }) {
           </ul>
           <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
             Delivering to {order.address.name}: {order.address.line1}
-            {order.address.line2 ? `, ${order.address.line2}` : ""}, {order.address.city}, {order.address.state} {order.address.pincode}
+            {order.address.line2 ? `, ${order.address.line2}` : ""}, {order.address.city},{" "}
+            {order.address.state} {order.address.pincode}
           </p>
         </div>
 
         {!cashOnDelivery && (
           <p className="mt-4 text-left text-xs leading-relaxed text-muted-foreground">
-            Your order is saved, but this checkout does not yet connect to a payment provider to collect or verify online payments.
+            Your order is saved, but this checkout does not yet connect to a payment provider to
+            collect or verify online payments.
           </p>
         )}
 
         <p className="mt-6 text-sm text-muted-foreground">
-          Returning to the home page in <span className="font-semibold text-foreground">{secondsLeft}</span> seconds.
+          Returning to the home page in{" "}
+          <span className="font-semibold text-foreground">{secondsLeft}</span> seconds.
         </p>
         <button
           type="button"
@@ -148,9 +168,14 @@ function CheckoutPage() {
 
   const [step, setStep] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
-  const [form, setForm] = useState({ ...EMPTY_ADDRESS, name: user?.name ?? "", phone: user?.phone ?? "" });
+  const [form, setForm] = useState({
+    ...EMPTY_ADDRESS,
+    name: user?.name ?? "",
+    phone: user?.phone ?? "",
+  });
   const [payment, setPayment] = useState("upi");
   const [placing, setPlacing] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
 
@@ -197,7 +222,8 @@ function CheckoutPage() {
           <LoaderCircle className="mx-auto size-12 animate-spin text-primary" />
           <h1 className="mt-5 font-display text-2xl font-bold">Confirming your order</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Please wait while we save your order with the backend and verify its order number. This can take a few seconds.
+            Please wait while we save your order with the backend and verify its order number. This
+            can take a few seconds.
           </p>
         </section>
       </div>
@@ -220,17 +246,23 @@ function CheckoutPage() {
   }
 
   if (!authChecked) {
-    return <div className="container-x py-16 text-center text-sm text-muted-foreground">Checking your account…</div>;
+    return (
+      <div className="container-x py-16 text-center text-sm text-muted-foreground">
+        Checking your account…
+      </div>
+    );
   }
 
   const codFee = payment === "cod" ? 49 : 0;
   const grandTotal = totals.total + codFee;
 
   async function saveAddress() {
+    if (savingAddress) return;
     if (!form.name || form.phone.length !== 10 || !form.line1 || form.pincode.length !== 6) {
       toast.error("Fill name, 10-digit phone, address and 6-digit pincode");
       return;
     }
+    setSavingAddress(true);
     try {
       const address = await addAddress(form);
       setSelected(address.id);
@@ -238,6 +270,8 @@ function CheckoutPage() {
       toast.success("Address saved");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save address");
+    } finally {
+      setSavingAddress(false);
     }
   }
 
@@ -281,14 +315,17 @@ function CheckoutPage() {
         metadata: {
           source: "web",
           itemCount: items.length,
-          messageSummary: items
-            .map((i) => i.message || i.variant)
-            .filter(Boolean)
-            .join(" | ") || "No custom message",
+          messageSummary:
+            items
+              .map((i) => i.message || i.variant)
+              .filter(Boolean)
+              .join(" | ") || "No custom message",
         },
       });
       if (!order.id) {
-        throw new Error("The backend did not return an order number. Please contact support before retrying.");
+        throw new Error(
+          "The backend did not return an order number. Please contact support before retrying.",
+        );
       }
 
       clearCart();
@@ -363,30 +400,64 @@ function CheckoutPage() {
                 <p className="text-sm font-semibold sm:col-span-2">
                   {selected ? "Selected delivery address" : "Add a new address"}
                 </p>
-                <Input readOnly={Boolean(selected)} label="Full name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+                <Input
+                  readOnly={Boolean(selected)}
+                  label="Full name"
+                  value={form.name}
+                  onChange={(v) => setForm({ ...form, name: v })}
+                />
                 <Input
                   label="Phone"
                   value={form.phone}
                   onChange={(v) => setForm({ ...form, phone: v.replace(/\D/g, "").slice(0, 10) })}
                   readOnly={Boolean(selected)}
                 />
-                <Input readOnly={Boolean(selected)} label="Address line 1" value={form.line1} onChange={(v) => setForm({ ...form, line1: v })} />
-                <Input readOnly={Boolean(selected)} label="Landmark (optional)" value={form.line2} onChange={(v) => setForm({ ...form, line2: v })} />
-                <Input readOnly={Boolean(selected)} label="City" value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
-                <Input readOnly={Boolean(selected)} label="State" value={form.state} onChange={(v) => setForm({ ...form, state: v })} />
+                <Input
+                  readOnly={Boolean(selected)}
+                  label="Address line 1"
+                  value={form.line1}
+                  onChange={(v) => setForm({ ...form, line1: v })}
+                />
+                <Input
+                  readOnly={Boolean(selected)}
+                  label="Landmark (optional)"
+                  value={form.line2}
+                  onChange={(v) => setForm({ ...form, line2: v })}
+                />
+                <Input
+                  readOnly={Boolean(selected)}
+                  label="City"
+                  value={form.city}
+                  onChange={(v) => setForm({ ...form, city: v })}
+                />
+                <Input
+                  readOnly={Boolean(selected)}
+                  label="State"
+                  value={form.state}
+                  onChange={(v) => setForm({ ...form, state: v })}
+                />
                 <Input
                   label="Pincode"
                   value={form.pincode}
                   onChange={(v) => setForm({ ...form, pincode: v.replace(/\D/g, "").slice(0, 6) })}
                   readOnly={Boolean(selected)}
                 />
-                <Input readOnly={Boolean(selected)} label="Label" value={form.label} onChange={(v) => setForm({ ...form, label: v })} />
+                <Input
+                  readOnly={Boolean(selected)}
+                  label="Label"
+                  value={form.label}
+                  onChange={(v) => setForm({ ...form, label: v })}
+                />
                 {selected ? (
                   <button
                     type="button"
                     onClick={() => {
                       setSelected(null);
-                      setForm({ ...EMPTY_ADDRESS, name: user?.name ?? "", phone: user?.phone ?? "" });
+                      setForm({
+                        ...EMPTY_ADDRESS,
+                        name: user?.name ?? "",
+                        phone: user?.phone ?? "",
+                      });
                     }}
                     className="h-11 rounded-lg border border-primary text-sm font-semibold text-primary sm:col-span-2"
                   >
@@ -395,10 +466,12 @@ function CheckoutPage() {
                 ) : (
                   <button
                     type="button"
+                    disabled={savingAddress}
                     onClick={() => void saveAddress()}
-                    className="h-11 rounded-lg border border-primary text-sm font-semibold text-primary sm:col-span-2"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-primary text-sm font-semibold text-primary disabled:cursor-wait disabled:opacity-60 sm:col-span-2"
                   >
-                    Save address
+                    {savingAddress && <LoaderCircle className="size-4 animate-spin" />}
+                    {savingAddress ? "Saving address…" : "Save address"}
                   </button>
                 )}
               </div>
@@ -444,7 +517,11 @@ function CheckoutPage() {
                 charged and no card details are stored.
               </p>
               <div className="mt-4 flex gap-3">
-                <button type="button" onClick={() => setStep(1)} className="h-12 flex-1 rounded-xl border text-sm font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="h-12 flex-1 rounded-xl border text-sm font-semibold"
+                >
                   Back
                 </button>
                 <button

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CartItem } from "./shop";
+import { useCatalog } from "./catalog";
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:4000").replace(/\/$/, "");
 
@@ -94,7 +95,9 @@ interface AccountState {
   token: string | null;
   addresses: Address[];
   orders: Order[];
-  register: (input: Omit<User, "email"> & { email: string; password: string }) => Promise<User | null>;
+  register: (
+    input: Omit<User, "email"> & { email: string; password: string },
+  ) => Promise<User | null>;
   loginWithEmailAndPassword: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   loadAddresses: (userId: string) => Promise<Address[]>;
@@ -116,19 +119,29 @@ export const useAccount = create<AccountState>()(
 
       register: async ({ name, email, phone, password }) => {
         const normalizedEmail = email.trim().toLowerCase();
-        if (!name || !/^\S+@\S+\.\S+$/.test(normalizedEmail) || phone.length !== 10 || password.length < 6) {
+        if (
+          !name ||
+          !/^\S+@\S+\.\S+$/.test(normalizedEmail) ||
+          phone.length !== 10 ||
+          password.length < 6
+        ) {
           return null;
         }
 
-        const data = await apiRequest<{ token: string; user: { id: string; name: string; email: string; phone: string } }>(
-          "/api/auth/register",
-          {
-            method: "POST",
-            body: JSON.stringify({ name, email: normalizedEmail, phone, password }),
-          },
-        );
+        const data = await apiRequest<{
+          token: string;
+          user: { id: string; name: string; email: string; phone: string };
+        }>("/api/auth/register", {
+          method: "POST",
+          body: JSON.stringify({ name, email: normalizedEmail, phone, password }),
+        });
 
-        const user = { id: data.user.id, name: data.user.name, email: data.user.email, phone: data.user.phone };
+        const user = {
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          phone: data.user.phone,
+        };
         set((state) => ({
           user,
           token: data.token,
@@ -140,15 +153,20 @@ export const useAccount = create<AccountState>()(
       loginWithEmailAndPassword: async (email, password) => {
         const normalizedEmail = email.trim().toLowerCase();
 
-        const data = await apiRequest<{ token: string; user: { id: string; name: string; email: string; phone: string } }>(
-          "/api/auth/login",
-          {
-            method: "POST",
-            body: JSON.stringify({ email: normalizedEmail, password }),
-          },
-        );
+        const data = await apiRequest<{
+          token: string;
+          user: { id: string; name: string; email: string; phone: string };
+        }>("/api/auth/login", {
+          method: "POST",
+          body: JSON.stringify({ email: normalizedEmail, password }),
+        });
 
-        const user = { id: data.user.id, name: data.user.name, email: data.user.email, phone: data.user.phone };
+        const user = {
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          phone: data.user.phone,
+        };
         set({ user, token: data.token, orders: [], addresses: [] });
         return true;
       },
@@ -168,19 +186,23 @@ export const useAccount = create<AccountState>()(
         }
 
         try {
-          const data = await apiRequest<{ items: Order[] }>(`/api/orders/${encodeURIComponent(userId)}`);
-          const orders = (data.items ?? []).map((order) => ({
-            ...order,
-            customer: order.customer ?? {
-              name: order.address.name,
-              email: get().user?.email ?? "",
-              phone: order.address.phone,
-              city: order.address.city,
-              pincode: order.address.pincode,
-            },
-            deliveryDate: order.deliveryDate ?? "As soon as possible",
-            slot: order.slot ?? "Standard delivery",
-          })).sort((a, b) => new Date(b.placedAt).getTime() - new Date(a.placedAt).getTime());
+          const data = await apiRequest<{ items: Order[] }>(
+            `/api/orders/${encodeURIComponent(userId)}`,
+          );
+          const orders = (data.items ?? [])
+            .map((order) => ({
+              ...order,
+              customer: order.customer ?? {
+                name: order.address.name,
+                email: get().user?.email ?? "",
+                phone: order.address.phone,
+                city: order.address.city,
+                pincode: order.address.pincode,
+              },
+              deliveryDate: order.deliveryDate ?? "As soon as possible",
+              slot: order.slot ?? "Standard delivery",
+            }))
+            .sort((a, b) => new Date(b.placedAt).getTime() - new Date(a.placedAt).getTime());
           set({ orders });
           return orders;
         } catch (error) {
@@ -194,35 +216,24 @@ export const useAccount = create<AccountState>()(
       addAddress: async (a) => {
         const userId = get().user?.id;
         if (!userId) {
-          const address = { ...a, id: `addr_${Date.now()}` };
-          set((s) => ({ addresses: [address, ...s.addresses] }));
-          return address;
+          throw new Error("Log in to save an address to your account.");
         }
 
-        try {
-          const data = await apiRequest<{ address: Address }>(`/api/account/${userId}/addresses`, {
-            method: "POST",
-            body: JSON.stringify(a),
-          });
-          set((s) => ({ addresses: [data.address, ...s.addresses] }));
-          return data.address;
-        } catch {
-          const address = { ...a, id: `addr_${Date.now()}` };
-          set((s) => ({ addresses: [address, ...s.addresses] }));
-          return address;
-        }
+        const data = await apiRequest<{ address: Address }>(`/api/account/${userId}/addresses`, {
+          method: "POST",
+          body: JSON.stringify(a),
+        });
+        set((s) => ({ addresses: [data.address, ...s.addresses] }));
+        return data.address;
       },
 
       removeAddress: async (id) => {
         const userId = get().user?.id;
-        if (userId) {
-          try {
-            await apiRequest(`/api/account/${userId}/addresses/${id}`, { method: "DELETE" });
-          } catch {
-            // local fallback below
-          }
+        if (!userId) {
+          throw new Error("Log in to remove a saved address.");
         }
 
+        await apiRequest(`/api/account/${userId}/addresses/${id}`, { method: "DELETE" });
         set((s) => ({ addresses: s.addresses.filter((a) => a.id !== id) }));
       },
 
@@ -249,20 +260,31 @@ export const useAccount = create<AccountState>()(
           },
         };
 
-        const data = await apiRequest<{ order: Order }>("/api/orders", {
+        const data = await apiRequest<{
+          order: Order;
+          stockUpdates?: Array<{ id: string; stock: number }>;
+        }>("/api/orders", {
           method: "POST",
           body: JSON.stringify(payload),
         });
+        for (const stockUpdate of data.stockUpdates ?? []) {
+          useCatalog.getState().updateProduct(stockUpdate.id, { stock: stockUpdate.stock });
+        }
         set((s) => ({ orders: [data.order, ...s.orders] }));
         return data.order;
       },
 
       cancelOrder: async (id) => {
-        const data = await apiRequest<{ order: Order }>(`/api/orders/${encodeURIComponent(id)}/cancel`, {
-          method: "PATCH",
-        });
+        const data = await apiRequest<{ order: Order }>(
+          `/api/orders/${encodeURIComponent(id)}/cancel`,
+          {
+            method: "PATCH",
+          },
+        );
         set((state) => ({
-          orders: state.orders.map((order) => (order.id === id ? { ...order, ...data.order } : order)),
+          orders: state.orders.map((order) =>
+            order.id === id ? { ...order, ...data.order } : order,
+          ),
         }));
         return data.order;
       },

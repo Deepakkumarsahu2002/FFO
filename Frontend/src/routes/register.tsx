@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Gift, ShieldCheck, Sparkles, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Gift, ShieldCheck, Sparkles, CheckCircle2, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAccount } from "@/store/account";
 
@@ -27,6 +27,7 @@ function RegisterPage() {
     password: "",
     confirmPassword: "",
   });
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <div className="container-x py-10 sm:py-16">
@@ -50,7 +51,10 @@ function RegisterPage() {
                 { icon: ShieldCheck, label: "Secure account access and saved addresses" },
                 { icon: CheckCircle2, label: "Track orders and revisit favorites anytime" },
               ].map(({ icon: Icon, label }) => (
-                <div key={label} className="flex items-start gap-3 rounded-2xl border border-primary/10 bg-white/70 p-3 shadow-sm backdrop-blur-sm">
+                <div
+                  key={label}
+                  className="flex items-start gap-3 rounded-2xl border border-primary/10 bg-white/70 p-3 shadow-sm backdrop-blur-sm"
+                >
                   <span className="mt-0.5 inline-flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <Icon className="size-4" />
                   </span>
@@ -62,18 +66,25 @@ function RegisterPage() {
 
           <div className="relative z-10 mt-8 flex flex-wrap gap-3">
             <div className="rounded-2xl border border-primary/10 bg-white/80 px-4 py-3 shadow-sm">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Delivery</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Delivery
+              </p>
               <p className="mt-1 font-display text-xl font-bold text-foreground">All India</p>
             </div>
             <div className="rounded-2xl border border-primary/10 bg-white/80 px-4 py-3 shadow-sm">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Loved by</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Loved by
+              </p>
               <p className="mt-1 font-display text-xl font-bold text-foreground">2 Lakh+</p>
             </div>
           </div>
         </div>
 
         <div className="rounded-[26px] border border-[#f1e1d7] bg-white/90 p-5 shadow-[0_18px_55px_rgba(74,41,18,0.08)] backdrop-blur-sm sm:p-7">
-          <Link to="/" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary"
+          >
             <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Sparkles className="size-3.5" />
             </span>
@@ -84,7 +95,8 @@ function RegisterPage() {
             Create account
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            First-time shoppers can register to save addresses, track orders and revisit favorite gifts.
+            First-time shoppers can register to save addresses, track orders and revisit favorite
+            gifts.
           </p>
 
           <form
@@ -112,26 +124,30 @@ function RegisterPage() {
                 return;
               }
 
-              let user: Awaited<ReturnType<typeof register>>;
+              if (submitting) return;
+              setSubmitting(true);
               try {
-                user = await register({
+                const user = await register({
                   name: form.name,
                   email: form.email,
                   phone: form.phone,
                   password: form.password,
                 });
+                if (!user) {
+                  toast.error("Please check your registration details and try again.");
+                  return;
+                }
+                toast.success(`Welcome, ${user.name}!`);
+                navigate({ to: "/account" });
               } catch (error) {
-                toast.error(error instanceof Error ? error.message : "Unable to create account. Please try again.");
-                return;
+                toast.error(
+                  error instanceof Error
+                    ? error.message
+                    : "Unable to create account. Please try again.",
+                );
+              } finally {
+                setSubmitting(false);
               }
-
-              if (!user) {
-                toast.error("Please check your registration details and try again.");
-                return;
-              }
-
-              toast.success(`Welcome, ${user.name}!`);
-              navigate({ to: "/account" });
             }}
           >
             <Field label="Full name">
@@ -183,16 +199,28 @@ function RegisterPage() {
 
             <button
               type="submit"
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold uppercase tracking-wide text-primary-foreground transition-transform hover:-translate-y-0.5"
+              disabled={submitting}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold uppercase tracking-wide text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70"
             >
-              Create account
-              <ArrowRight className="size-4" />
+              {submitting ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" /> Creating account…
+                </>
+              ) : (
+                <>
+                  Create account
+                  <ArrowRight className="size-4" />
+                </>
+              )}
             </button>
           </form>
 
           <p className="mt-5 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
-            <Link to="/login" className="font-semibold text-primary underline-offset-4 hover:underline">
+            <Link
+              to="/login"
+              className="font-semibold text-primary underline-offset-4 hover:underline"
+            >
               Log in
             </Link>
           </p>

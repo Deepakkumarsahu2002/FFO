@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { ArrowRight, Gift, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Gift, LoaderCircle, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { resolveImage } from "@/data/images";
 import { useAccount } from "@/store/account";
@@ -22,6 +22,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const loginWithEmailAndPassword = useAccount((s) => s.loginWithEmailAndPassword);
   const [form, setForm] = useState({ email: "", password: "" });
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <div className="container-x py-10 sm:py-16">
@@ -45,7 +46,10 @@ function LoginPage() {
                 { icon: Gift, label: "Same-day gifting" },
                 { icon: ShieldCheck, label: "Secure checkout" },
               ].map(({ icon: Icon, label }) => (
-                <div key={label} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur-sm">
+                <div
+                  key={label}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur-sm"
+                >
                   <Icon className="size-4" />
                   {label}
                 </div>
@@ -55,7 +59,10 @@ function LoginPage() {
         </div>
 
         <div className="rounded-[26px] border border-[#f1e1d7] bg-white/90 p-5 shadow-[0_18px_55px_rgba(74,41,18,0.08)] backdrop-blur-sm sm:p-7">
-          <Link to="/" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary"
+          >
             <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Sparkles className="size-3.5" />
             </span>
@@ -78,19 +85,23 @@ function LoginPage() {
                 return;
               }
 
+              if (submitting) return;
+              setSubmitting(true);
               try {
                 const isValid = await loginWithEmailAndPassword(form.email, form.password);
                 if (!isValid) {
                   toast.error("Incorrect email or password");
                   return;
                 }
+                toast.success("Logged in successfully");
+                navigate({ to: "/account" });
               } catch (error) {
-                toast.error(error instanceof Error ? error.message : "Unable to log in. Please try again.");
-                return;
+                toast.error(
+                  error instanceof Error ? error.message : "Unable to log in. Please try again.",
+                );
+              } finally {
+                setSubmitting(false);
               }
-
-              toast.success("Logged in successfully");
-              navigate({ to: "/account" });
             }}
           >
             <Field label="Email">
@@ -113,20 +124,35 @@ function LoginPage() {
             </Field>
 
             <div className="flex items-center justify-between gap-2 text-xs">
-              <Link to="/register" className="font-semibold text-primary underline-offset-4 hover:underline">
+              <Link
+                to="/register"
+                className="font-semibold text-primary underline-offset-4 hover:underline"
+              >
                 Create account
               </Link>
-              <Link to="/forgot-password" className="font-semibold text-primary underline-offset-4 hover:underline">
+              <Link
+                to="/forgot-password"
+                className="font-semibold text-primary underline-offset-4 hover:underline"
+              >
                 Forgot password?
               </Link>
             </div>
 
             <button
               type="submit"
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold uppercase tracking-wide text-primary-foreground transition-transform hover:-translate-y-0.5"
+              disabled={submitting}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-bold uppercase tracking-wide text-primary-foreground transition-transform hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-70"
             >
-              Log in
-              <ArrowRight className="size-4" />
+              {submitting ? (
+                <>
+                  <LoaderCircle className="size-4 animate-spin" /> Logging in…
+                </>
+              ) : (
+                <>
+                  Log in
+                  <ArrowRight className="size-4" />
+                </>
+              )}
             </button>
           </form>
 

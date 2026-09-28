@@ -1,6 +1,17 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Heart, LogOut, MapPin, Package, Plus, Sparkles, Trash2, User } from "lucide-react";
+import {
+  ArrowRight,
+  Heart,
+  LoaderCircle,
+  LogOut,
+  MapPin,
+  Package,
+  Plus,
+  Sparkles,
+  Trash2,
+  User,
+} from "lucide-react";
 import { toast } from "sonner";
 import { resolveImage } from "@/data/images";
 import { inr } from "@/lib/format";
@@ -35,17 +46,40 @@ const EMPTY = {
 
 function AccountPage() {
   const navigate = useNavigate();
-  const { user, logout, addresses, addAddress, removeAddress, orders, loadOrders, cancelOrder } = useAccount();
+  const {
+    user,
+    logout,
+    addresses,
+    addAddress,
+    removeAddress,
+    loadAddresses,
+    orders,
+    loadOrders,
+    cancelOrder,
+  } = useAccount();
   const wishlistCount = useShop((s) => s.wishlist.length);
   const [form, setForm] = useState(EMPTY);
   const [showForm, setShowForm] = useState(false);
+  const [loadingAddresses, setLoadingAddresses] = useState(true);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+  const [savingAddress, setSavingAddress] = useState(false);
+  const [deletingAddress, setDeletingAddress] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
-    void loadOrders(user.id).catch((error) => {
-      toast.error(error instanceof Error ? error.message : "Could not load your orders");
-    });
-  }, [loadOrders, user?.id]);
+    setLoadingAddresses(true);
+    setLoadingOrders(true);
+    void loadAddresses(user.id)
+      .catch((error) => {
+        toast.error(error instanceof Error ? error.message : "Could not load saved addresses");
+      })
+      .finally(() => setLoadingAddresses(false));
+    void loadOrders(user.id)
+      .catch((error) => {
+        toast.error(error instanceof Error ? error.message : "Could not load your orders");
+      })
+      .finally(() => setLoadingOrders(false));
+  }, [loadAddresses, loadOrders, user?.id]);
 
   if (!user) {
     return (
@@ -69,7 +103,10 @@ function AccountPage() {
           </div>
 
           <div className="rounded-[26px] border border-[#f1e1d7] bg-white/90 p-5 shadow-[0_18px_55px_rgba(74,41,18,0.08)] backdrop-blur-sm sm:p-7">
-            <Link to="/" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary"
+            >
               <span className="inline-flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Sparkles className="size-3.5" />
               </span>
@@ -106,8 +143,12 @@ function AccountPage() {
                 { label: "Secure gifting", value: "Easy checkout" },
               ].map((item) => (
                 <div key={item.label} className="rounded-xl border border-primary/10 bg-cream p-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{item.label}</p>
-                  <p className="mt-2 font-display text-lg font-bold text-foreground">{item.value}</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    {item.label}
+                  </p>
+                  <p className="mt-2 font-display text-lg font-bold text-foreground">
+                    {item.value}
+                  </p>
                 </div>
               ))}
             </div>
@@ -122,7 +163,9 @@ function AccountPage() {
       <div className="overflow-hidden rounded-[30px] border border-primary/10 bg-gradient-to-r from-[#fffaf5] via-white to-[#f1eae1] p-5 shadow-card sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">Customer dashboard</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+              Customer dashboard
+            </p>
             <h1 className="mt-2 font-display text-3xl font-bold text-foreground sm:text-4xl">
               Welcome back, {user.name}
             </h1>
@@ -134,9 +177,14 @@ function AccountPage() {
               { label: "Saved", value: String(addresses.length), icon: MapPin },
               { label: "Wishlist", value: String(wishlistCount), icon: Heart },
             ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="rounded-2xl border border-primary/10 bg-white/80 p-3 shadow-sm">
+              <div
+                key={label}
+                className="rounded-2xl border border-primary/10 bg-white/80 p-3 shadow-sm"
+              >
                 <div className="flex items-center justify-between">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    {label}
+                  </p>
                   <Icon className="size-4 text-primary" />
                 </div>
                 <p className="mt-3 font-display text-2xl font-bold text-foreground">{value}</p>
@@ -171,11 +219,17 @@ function AccountPage() {
             </div>
 
             <div className="grid gap-2 text-sm">
-              <Link to="/orders" className="flex items-center gap-2 rounded-xl border p-3 transition-colors hover:bg-muted/50">
+              <Link
+                to="/orders"
+                className="flex items-center gap-2 rounded-xl border p-3 transition-colors hover:bg-muted/50"
+              >
                 <Package className="size-4 text-primary" /> My orders
-                <span className="ml-auto font-semibold">{orders.length}</span>
+                <span className="ml-auto font-semibold">{loadingOrders ? "…" : orders.length}</span>
               </Link>
-              <Link to="/wishlist" className="flex items-center gap-2 rounded-xl border p-3 transition-colors hover:bg-muted/50">
+              <Link
+                to="/wishlist"
+                className="flex items-center gap-2 rounded-xl border p-3 transition-colors hover:bg-muted/50"
+              >
                 <Heart className="size-4 text-primary" /> Wishlist
                 <span className="ml-auto font-semibold">{wishlistCount}</span>
               </Link>
@@ -212,20 +266,41 @@ function AccountPage() {
             {showForm && (
               <form
                 className="mb-4 grid gap-3 rounded-2xl bg-cream p-4 sm:grid-cols-2"
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  if (!form.name || form.phone.length !== 10 || !form.line1 || form.pincode.length !== 6) {
+                  if (savingAddress) return;
+                  if (
+                    !form.name ||
+                    form.phone.length !== 10 ||
+                    !form.line1 ||
+                    form.pincode.length !== 6
+                  ) {
                     toast.error("Fill name, 10-digit phone, address and 6-digit pincode");
                     return;
                   }
-                  addAddress(form);
-                  setForm(EMPTY);
-                  setShowForm(false);
-                  toast.success("Address saved");
+                  setSavingAddress(true);
+                  try {
+                    await addAddress(form);
+                    setForm(EMPTY);
+                    setShowForm(false);
+                    toast.success("Address saved");
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : "Could not save address");
+                  } finally {
+                    setSavingAddress(false);
+                  }
                 }}
               >
-                <Input label="Label" value={form.label} onChange={(v) => setForm({ ...form, label: v })} />
-                <Input label="Full name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+                <Input
+                  label="Label"
+                  value={form.label}
+                  onChange={(v) => setForm({ ...form, label: v })}
+                />
+                <Input
+                  label="Full name"
+                  value={form.name}
+                  onChange={(v) => setForm({ ...form, name: v })}
+                />
                 <Input
                   label="Phone"
                   value={form.phone}
@@ -236,25 +311,50 @@ function AccountPage() {
                   value={form.pincode}
                   onChange={(v) => setForm({ ...form, pincode: v.replace(/\D/g, "").slice(0, 6) })}
                 />
-                <Input label="Address line 1" value={form.line1} onChange={(v) => setForm({ ...form, line1: v })} />
-                <Input label="Landmark (optional)" value={form.line2} onChange={(v) => setForm({ ...form, line2: v })} />
-                <Input label="City" value={form.city} onChange={(v) => setForm({ ...form, city: v })} />
-                <Input label="State" value={form.state} onChange={(v) => setForm({ ...form, state: v })} />
+                <Input
+                  label="Address line 1"
+                  value={form.line1}
+                  onChange={(v) => setForm({ ...form, line1: v })}
+                />
+                <Input
+                  label="Landmark (optional)"
+                  value={form.line2}
+                  onChange={(v) => setForm({ ...form, line2: v })}
+                />
+                <Input
+                  label="City"
+                  value={form.city}
+                  onChange={(v) => setForm({ ...form, city: v })}
+                />
+                <Input
+                  label="State"
+                  value={form.state}
+                  onChange={(v) => setForm({ ...form, state: v })}
+                />
                 <button
                   type="submit"
-                  className="h-11 rounded-lg bg-primary text-sm font-semibold text-primary-foreground sm:col-span-2"
+                  disabled={savingAddress}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary text-sm font-semibold text-primary-foreground disabled:cursor-wait disabled:opacity-70 sm:col-span-2"
                 >
-                  Save address
+                  {savingAddress && <LoaderCircle className="size-4 animate-spin" />}
+                  {savingAddress ? "Saving address…" : "Save address"}
                 </button>
               </form>
             )}
 
-            {addresses.length === 0 ? (
+            {loadingAddresses ? (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <LoaderCircle className="size-4 animate-spin" /> Loading saved addresses…
+              </p>
+            ) : addresses.length === 0 ? (
               <p className="text-sm text-muted-foreground">No addresses saved yet.</p>
             ) : (
               <ul className="grid gap-3 sm:grid-cols-2">
                 {addresses.map((a) => (
-                  <li key={a.id} className="rounded-2xl border border-primary/10 bg-cream p-3 text-sm">
+                  <li
+                    key={a.id}
+                    className="rounded-2xl border border-primary/10 bg-cream p-3 text-sm"
+                  >
                     <p className="font-semibold text-foreground">
                       {a.label} · {a.name}
                     </p>
@@ -265,10 +365,28 @@ function AccountPage() {
                     <p className="mt-1 text-muted-foreground">+91 {a.phone}</p>
                     <button
                       type="button"
-                      onClick={() => removeAddress(a.id)}
-                      className="mt-2 inline-flex items-center gap-1 text-xs text-destructive"
+                      disabled={deletingAddress === a.id}
+                      onClick={async () => {
+                        setDeletingAddress(a.id);
+                        try {
+                          await removeAddress(a.id);
+                          toast.success("Address removed");
+                        } catch (error) {
+                          toast.error(
+                            error instanceof Error ? error.message : "Could not remove address",
+                          );
+                        } finally {
+                          setDeletingAddress(null);
+                        }
+                      }}
+                      className="mt-2 inline-flex items-center gap-1 text-xs text-destructive disabled:opacity-60"
                     >
-                      <Trash2 className="size-3.5" /> Remove
+                      {deletingAddress === a.id ? (
+                        <LoaderCircle className="size-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-3.5" />
+                      )}
+                      {deletingAddress === a.id ? "Removing…" : "Remove"}
                     </button>
                   </li>
                 ))}
@@ -280,12 +398,19 @@ function AccountPage() {
             <h2 className="mb-3 flex items-center gap-2 font-semibold">
               <Package className="size-4 text-primary" /> Recent orders
             </h2>
-            {orders.length === 0 ? (
+            {loadingOrders ? (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <LoaderCircle className="size-4 animate-spin" /> Loading your orders…
+              </p>
+            ) : orders.length === 0 ? (
               <p className="text-sm text-muted-foreground">You haven't placed an order yet.</p>
             ) : (
               <ul className="space-y-2">
                 {orders.slice(0, 3).map((o) => (
-                  <li key={o.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/10 bg-cream p-3 text-sm">
+                  <li
+                    key={o.id}
+                    className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/10 bg-cream p-3 text-sm"
+                  >
                     {o.items[0] && (
                       <StoreProductImage
                         src={o.items[0].image}

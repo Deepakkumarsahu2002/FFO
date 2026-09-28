@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
+  LoaderCircle,
   Package,
   ShoppingBag,
   Ticket,
@@ -19,14 +20,21 @@ import {
   Wallet,
   PackageCheck,
 } from "lucide-react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { cn } from "@/lib/utils";
 import { inr } from "@/lib/format";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { CATEGORIES, type CategorySlug, type Product } from "@/data/catalog";
 import { hydrateCatalogFromBackend, useCatalog, slugify, type Coupon } from "@/store/catalog";
 import { useAccount, type Order } from "@/store/account";
@@ -86,7 +94,8 @@ function AdminPage() {
         if (active) useAccount.setState({ orders: items });
       })
       .catch((error) => {
-        if (active) toast.error(error instanceof Error ? error.message : "Could not load admin orders");
+        if (active)
+          toast.error(error instanceof Error ? error.message : "Could not load admin orders");
       });
     return () => {
       active = false;
@@ -94,7 +103,11 @@ function AdminPage() {
   }, [authed]);
 
   if (!sessionReady) {
-    return <div className="container-x py-16 text-center text-sm text-muted-foreground">Checking admin session…</div>;
+    return (
+      <div className="container-x py-16 text-center text-sm text-muted-foreground">
+        Checking admin session…
+      </div>
+    );
   }
 
   if (!authed) return <AdminLogin />;
@@ -147,6 +160,7 @@ function AdminPage() {
 
 function AdminLogin() {
   const [code, setCode] = useState("");
+  const [signingIn, setSigningIn] = useState(false);
   const signIn = useAdmin((s) => s.signIn);
 
   return (
@@ -154,11 +168,15 @@ function AdminLogin() {
       <form
         onSubmit={async (e) => {
           e.preventDefault();
+          if (signingIn) return;
+          setSigningIn(true);
           try {
             await signIn(code);
             toast.success("Welcome back");
           } catch (error) {
             toast.error(error instanceof Error ? error.message : "Unable to sign in");
+          } finally {
+            setSigningIn(false);
           }
         }}
         className="w-full max-w-sm rounded-2xl border bg-card p-7 shadow-soft"
@@ -178,8 +196,12 @@ function AdminLogin() {
           className="input-base mt-5"
           autoFocus
         />
-        <button className="mt-4 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">
-          Unlock console
+        <button
+          disabled={signingIn}
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:cursor-wait disabled:opacity-70"
+        >
+          {signingIn && <LoaderCircle className="size-4 animate-spin" />}
+          {signingIn ? "Verifying access…" : "Unlock console"}
         </button>
       </form>
     </div>
@@ -192,9 +214,7 @@ function Dashboard() {
   const products = useCatalog((s) => s.products);
   const orders = useAccount((s) => s.orders);
 
-  const revenue = orders
-    .filter((o) => o.status !== "Cancelled")
-    .reduce((s, o) => s + o.total, 0);
+  const revenue = orders.filter((o) => o.status !== "Cancelled").reduce((s, o) => s + o.total, 0);
   const lowStock = products.filter((p) => p.stock <= 5);
   const activeCustomers = new Set(
     orders.map((o) => o.customer?.phone || o.address.phone).filter(Boolean),
@@ -240,17 +260,39 @@ function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat label="Products" value={String(products.length)} icon={PackageCheck} accent="from-[#fdf2f8] via-white to-[#fff7ed]" />
-        <Stat label="Orders" value={String(orders.length)} icon={ShoppingBag} accent="from-[#f0fdf4] via-white to-[#ecfeff]" />
-        <Stat label="Revenue" value={inr(revenue)} icon={Wallet} accent="from-[#fff7ed] via-white to-[#fdf2f8]" />
-        <Stat label="Active customers" value={String(activeCustomers)} icon={Users} accent="from-[#eef2ff] via-white to-[#f5f3ff]" />
+        <Stat
+          label="Products"
+          value={String(products.length)}
+          icon={PackageCheck}
+          accent="from-[#fdf2f8] via-white to-[#fff7ed]"
+        />
+        <Stat
+          label="Orders"
+          value={String(orders.length)}
+          icon={ShoppingBag}
+          accent="from-[#f0fdf4] via-white to-[#ecfeff]"
+        />
+        <Stat
+          label="Revenue"
+          value={inr(revenue)}
+          icon={Wallet}
+          accent="from-[#fff7ed] via-white to-[#fdf2f8]"
+        />
+        <Stat
+          label="Active customers"
+          value={String(activeCustomers)}
+          icon={Users}
+          accent="from-[#eef2ff] via-white to-[#f5f3ff]"
+        />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_0.9fr]">
         <section className="rounded-3xl border bg-gradient-to-br from-white via-[#fffaf5] to-[#fff8ee] p-5 shadow-[0_18px_45px_rgba(120,66,18,0.06)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Performance</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                Performance
+              </p>
               <h2 className="font-display text-xl font-bold">Revenue trend</h2>
             </div>
             <div className="flex items-center gap-2 rounded-full bg-[#fff1e6] px-2.5 py-1 text-xs font-semibold text-[#9a4d12]">
@@ -276,7 +318,13 @@ function Dashboard() {
               <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={8} />
               <YAxis tickLine={false} axisLine={false} tickMargin={8} />
               <ChartTooltip content={<ChartTooltipContent />} />
-              <Area type="monotone" dataKey="revenue" stroke="#7c2d12" fill="url(#revenueFill)" strokeWidth={3} />
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                stroke="#7c2d12"
+                fill="url(#revenueFill)"
+                strokeWidth={3}
+              />
             </AreaChart>
           </ChartContainer>
         </section>
@@ -284,7 +332,9 @@ function Dashboard() {
         <section className="rounded-3xl border bg-card p-5 shadow-[0_18px_45px_rgba(15,23,42,0.04)]">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Catalog mix</p>
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                Catalog mix
+              </p>
               <h2 className="font-display text-xl font-bold">Categories</h2>
             </div>
           </div>
@@ -296,7 +346,14 @@ function Dashboard() {
             className="h-[240px] w-full"
           >
             <PieChart>
-              <Pie data={categoryMix} dataKey="value" nameKey="name" innerRadius={44} outerRadius={78} paddingAngle={3}>
+              <Pie
+                data={categoryMix}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={44}
+                outerRadius={78}
+                paddingAngle={3}
+              >
                 {categoryMix.map((entry, index) => (
                   <Cell key={`${entry.name}-${index}`} fill={pieColors[index % pieColors.length]} />
                 ))}
@@ -309,7 +366,10 @@ function Dashboard() {
             {categoryMix.map((item, index) => (
               <div key={item.name} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="size-2.5 rounded-full" style={{ backgroundColor: pieColors[index % pieColors.length] }} />
+                  <span
+                    className="size-2.5 rounded-full"
+                    style={{ backgroundColor: pieColors[index % pieColors.length] }}
+                  />
                   <span className="text-muted-foreground">{item.name}</span>
                 </div>
                 <span className="font-semibold">{item.value}</span>
@@ -336,7 +396,10 @@ function Dashboard() {
           ) : (
             <ul className="space-y-2">
               {orders.slice(0, 6).map((o) => (
-                <li key={o.id} className="flex items-center justify-between gap-3 rounded-2xl border bg-muted/20 px-3 py-2.5">
+                <li
+                  key={o.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl border bg-muted/20 px-3 py-2.5"
+                >
                   {o.items[0] && (
                     <StoreProductImage
                       src={o.items[0].image}
@@ -346,8 +409,12 @@ function Dashboard() {
                     />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium">#{o.id} · {o.items[0]?.name}</p>
-                    <p className="text-xs text-muted-foreground">{o.address.name} · {new Date(o.placedAt).toLocaleDateString("en-IN")}</p>
+                    <p className="font-medium">
+                      #{o.id} · {o.items[0]?.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {o.address.name} · {new Date(o.placedAt).toLocaleDateString("en-IN")}
+                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="font-semibold">{inr(o.total)}</span>
@@ -370,9 +437,14 @@ function Dashboard() {
           <div className="space-y-3">
             {lowStock.length > 0 ? (
               lowStock.slice(0, 6).map((p) => (
-                <div key={p.id} className="flex items-center justify-between rounded-2xl bg-amber-50 px-3 py-2.5 text-sm text-amber-900">
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between rounded-2xl bg-amber-50 px-3 py-2.5 text-sm text-amber-900"
+                >
                   <span className="font-medium">{p.name}</span>
-                  <span className="rounded-full bg-white/70 px-2 py-1 text-xs font-semibold">{p.stock} left</span>
+                  <span className="rounded-full bg-white/70 px-2 py-1 text-xs font-semibold">
+                    {p.stock} left
+                  </span>
                 </div>
               ))
             ) : (
@@ -399,7 +471,12 @@ function Stat({
   accent: string;
 }) {
   return (
-    <div className={cn("rounded-3xl border bg-gradient-to-br p-5 shadow-[0_16px_32px_rgba(15,23,42,0.04)]", accent)}>
+    <div
+      className={cn(
+        "rounded-3xl border bg-gradient-to-br p-5 shadow-[0_16px_32px_rgba(15,23,42,0.04)]",
+        accent,
+      )}
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
@@ -457,7 +534,10 @@ function CustomersAdmin() {
         if (active) setCustomers(result.items);
       })
       .catch((requestError) => {
-        if (active) setError(requestError instanceof Error ? requestError.message : "Could not load customers");
+        if (active)
+          setError(
+            requestError instanceof Error ? requestError.message : "Could not load customers",
+          );
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -468,14 +548,21 @@ function CustomersAdmin() {
   }, [reload]);
 
   if (loading) {
-    return <p className="rounded-2xl border bg-card p-8 text-center text-muted-foreground">Loading customer records…</p>;
+    return (
+      <p className="rounded-2xl border bg-card p-8 text-center text-muted-foreground">
+        Loading customer records…
+      </p>
+    );
   }
 
   if (error) {
     return (
       <div className="rounded-2xl border bg-card p-8 text-center">
         <p className="text-sm text-destructive">{error}</p>
-        <button className="mt-3 rounded-lg border px-4 py-2 text-sm font-semibold" onClick={() => setReload((value) => value + 1)}>
+        <button
+          className="mt-3 rounded-lg border px-4 py-2 text-sm font-semibold"
+          onClick={() => setReload((value) => value + 1)}
+        >
           Retry
         </button>
       </div>
@@ -518,7 +605,9 @@ function CustomersAdmin() {
               <td className="p-3">{customer.orderCount}</td>
               <td className="p-3">{inr(customer.totalSpent)}</td>
               <td className="p-3">
-                {customer.lastOrderAt ? new Date(customer.lastOrderAt).toLocaleString("en-IN") : "No orders yet"}
+                {customer.lastOrderAt
+                  ? new Date(customer.lastOrderAt).toLocaleString("en-IN")
+                  : "No orders yet"}
               </td>
             </tr>
           ))}
@@ -557,11 +646,18 @@ const emptyDraft = (): Product => ({
 
 function ProductsAdmin() {
   const products = useCatalog((s) => s.products);
+  const catalogLoaded = useCatalog((s) => s.isLoaded);
   const { addProduct, updateProduct, deleteProduct } = useCatalog.getState();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<"all" | CategorySlug>("all");
   const [draft, setDraft] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deletingProduct, setDeletingProduct] = useState<string | null>(null);
+  const [savingField, setSavingField] = useState<string | null>(null);
+
+  useEffect(() => {
+    void hydrateCatalogFromBackend();
+  }, []);
 
   const list = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -604,6 +700,22 @@ function ProductsAdmin() {
       toast.error(error instanceof Error ? error.message : "Could not save product");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveField(productId: string, field: "price" | "stock", value: number) {
+    const key = `${productId}-${field}`;
+    setSavingField(key);
+    try {
+      await adminApiRequest(`/products/${encodeURIComponent(productId)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ [field]: value }),
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `Could not save ${field}`);
+      await hydrateCatalogFromBackend();
+    } finally {
+      setSavingField(null);
     }
   }
 
@@ -663,34 +775,24 @@ function ProductsAdmin() {
                     type="number"
                     value={p.price}
                     onChange={(e) => updateProduct(p.id, { price: Number(e.target.value) })}
-                    onBlur={() => {
-                      void adminApiRequest(`/products/${encodeURIComponent(p.id)}`, {
-                        method: "PATCH",
-                        body: JSON.stringify({ price: p.price }),
-                      }).catch((error) => {
-                        toast.error(error instanceof Error ? error.message : "Could not save price");
-                        void hydrateCatalogFromBackend();
-                      });
-                    }}
+                    onBlur={() => void saveField(p.id, "price", p.price)}
                     className="input-base h-9 w-24 py-1"
                   />
+                  {savingField === `${p.id}-price` && (
+                    <span className="text-xs text-muted-foreground">Saving…</span>
+                  )}
                 </td>
                 <td className="p-3">
                   <input
                     type="number"
                     value={p.stock}
                     onChange={(e) => updateProduct(p.id, { stock: Number(e.target.value) })}
-                    onBlur={() => {
-                      void adminApiRequest(`/products/${encodeURIComponent(p.id)}`, {
-                        method: "PATCH",
-                        body: JSON.stringify({ stock: p.stock }),
-                      }).catch((error) => {
-                        toast.error(error instanceof Error ? error.message : "Could not save stock");
-                        void hydrateCatalogFromBackend();
-                      });
-                    }}
+                    onBlur={() => void saveField(p.id, "stock", p.stock)}
                     className="input-base h-9 w-20 py-1"
                   />
+                  {savingField === `${p.id}-stock` && (
+                    <span className="text-xs text-muted-foreground">Saving…</span>
+                  )}
                 </td>
                 <td className="p-3">
                   <div className="flex gap-2">
@@ -701,19 +803,32 @@ function ProductsAdmin() {
                       Edit
                     </button>
                     <button
+                      disabled={deletingProduct === p.id}
                       onClick={async () => {
+                        if (deletingProduct) return;
+                        setDeletingProduct(p.id);
                         try {
-                          await adminApiRequest(`/products/${encodeURIComponent(p.id)}`, { method: "DELETE" });
+                          await adminApiRequest(`/products/${encodeURIComponent(p.id)}`, {
+                            method: "DELETE",
+                          });
                           deleteProduct(p.id);
                           toast.success("Product removed");
                         } catch (error) {
-                          toast.error(error instanceof Error ? error.message : "Could not remove product");
+                          toast.error(
+                            error instanceof Error ? error.message : "Could not remove product",
+                          );
+                        } finally {
+                          setDeletingProduct(null);
                         }
                       }}
-                      className="rounded-lg border border-destructive/40 px-2 py-1.5 text-destructive"
+                      className="rounded-lg border border-destructive/40 px-2 py-1.5 text-destructive disabled:cursor-wait disabled:opacity-60"
                       aria-label={`Delete ${p.name}`}
                     >
-                      <Trash2 className="size-4" />
+                      {deletingProduct === p.id ? (
+                        <LoaderCircle className="size-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-4" />
+                      )}
                     </button>
                   </div>
                 </td>
@@ -722,7 +837,7 @@ function ProductsAdmin() {
             {list.length === 0 && (
               <tr>
                 <td colSpan={5} className="p-6 text-center text-muted-foreground">
-                  No products match this filter.
+                  {catalogLoaded ? "No products match this filter." : "Loading product inventory…"}
                 </td>
               </tr>
             )}
@@ -761,13 +876,17 @@ function ProductEditor({
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
       <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-card p-6">
-      <h2 className="font-display text-lg font-bold">
-        {value.name ? `Edit — ${value.name}` : "New product"}
-      </h2>
+        <h2 className="font-display text-lg font-bold">
+          {value.name ? `Edit — ${value.name}` : "New product"}
+        </h2>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field label="Name">
-            <input value={value.name} onChange={(e) => set({ name: e.target.value })} className="input-base" />
+            <input
+              value={value.name}
+              onChange={(e) => set({ name: e.target.value })}
+              className="input-base"
+            />
           </Field>
           <Field label="Category">
             <select
@@ -790,7 +909,11 @@ function ProductEditor({
             />
           </Field>
           <Field label="Colour">
-            <input value={value.color} onChange={(e) => set({ color: e.target.value })} className="input-base" />
+            <input
+              value={value.color}
+              onChange={(e) => set({ color: e.target.value })}
+              className="input-base"
+            />
           </Field>
           <Field label="Price (₹)">
             <input
@@ -837,9 +960,21 @@ function ProductEditor({
 
         <div className="mt-4 flex flex-wrap gap-4 text-sm">
           <Toggle label="Same-day" checked={value.sameDay} onChange={(v) => set({ sameDay: v })} />
-          <Toggle label="Bestseller" checked={value.isBestSeller} onChange={(v) => set({ isBestSeller: v })} />
-          <Toggle label="Featured" checked={value.isFeatured} onChange={(v) => set({ isFeatured: v })} />
-          <Toggle label="Premium" checked={value.isPremium} onChange={(v) => set({ isPremium: v })} />
+          <Toggle
+            label="Bestseller"
+            checked={value.isBestSeller}
+            onChange={(v) => set({ isBestSeller: v })}
+          />
+          <Toggle
+            label="Featured"
+            checked={value.isFeatured}
+            onChange={(v) => set({ isFeatured: v })}
+          />
+          <Toggle
+            label="Premium"
+            checked={value.isPremium}
+            onChange={(v) => set({ isPremium: v })}
+          />
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
@@ -905,6 +1040,7 @@ const STATUSES: Order["status"][] = [
 function OrdersAdmin() {
   const orders = useAccount((s) => s.orders);
   const setOrderStatus = useAccount((s) => s.setOrderStatus);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
   if (orders.length === 0)
     return (
@@ -931,8 +1067,11 @@ function OrdersAdmin() {
               </span>
               <select
                 value={o.status}
+                disabled={updatingOrderId === o.id}
                 onChange={async (e) => {
                   const status = e.target.value as Order["status"];
+                  if (updatingOrderId) return;
+                  setUpdatingOrderId(o.id);
                   try {
                     const result = await adminApiRequest<{ order: Order }>(
                       `/orders/${encodeURIComponent(o.id)}/status`,
@@ -941,10 +1080,14 @@ function OrdersAdmin() {
                     setOrderStatus(o.id, result.order.status);
                     toast.success(`Order #${o.id} → ${result.order.status}`);
                   } catch (error) {
-                    toast.error(error instanceof Error ? error.message : "Could not update order status");
+                    toast.error(
+                      error instanceof Error ? error.message : "Could not update order status",
+                    );
+                  } finally {
+                    setUpdatingOrderId(null);
                   }
                 }}
-                className="input-base h-9 w-44 py-1"
+                className="input-base h-9 w-44 py-1 disabled:opacity-60"
               >
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
@@ -952,6 +1095,11 @@ function OrdersAdmin() {
                   </option>
                 ))}
               </select>
+              {updatingOrderId === o.id && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <LoaderCircle className="size-3 animate-spin" /> Updating…
+                </span>
+              )}
             </div>
           </div>
 
@@ -962,7 +1110,9 @@ function OrdersAdmin() {
               </p>
               <p className="font-medium">{o.customer?.name ?? o.address.name}</p>
               <p className="text-sm text-muted-foreground">{o.customer?.email || "No email"}</p>
-              <p className="text-sm text-muted-foreground">+91 {o.customer?.phone ?? o.address.phone}</p>
+              <p className="text-sm text-muted-foreground">
+                +91 {o.customer?.phone ?? o.address.phone}
+              </p>
             </div>
 
             <div className="rounded-xl border bg-muted/30 p-3">
@@ -970,7 +1120,8 @@ function OrdersAdmin() {
                 Shipping
               </p>
               <p className="text-sm text-muted-foreground">
-                {o.shipping?.address?.line1 ?? o.address.line1}, {o.shipping?.address?.city ?? o.address.city}
+                {o.shipping?.address?.line1 ?? o.address.line1},{" "}
+                {o.shipping?.address?.city ?? o.address.city}
               </p>
               <p className="text-sm text-muted-foreground">
                 {o.shipping?.address?.pincode ?? o.address.pincode} · {o.shipping?.method ?? o.slot}
@@ -997,7 +1148,10 @@ function OrdersAdmin() {
             </p>
             <ul className="space-y-2 text-sm">
               {o.items.map((i) => (
-                <li key={`${o.id}-${i.productId}`} className="flex items-center justify-between gap-3 border-b border-border/60 pb-2 last:border-none last:pb-0">
+                <li
+                  key={`${o.id}-${i.productId}`}
+                  className="flex items-center justify-between gap-3 border-b border-border/60 pb-2 last:border-none last:pb-0"
+                >
                   <span className="flex min-w-0 items-center gap-2">
                     <StoreProductImage
                       src={i.image}
@@ -1006,7 +1160,9 @@ function OrdersAdmin() {
                       className="size-12 shrink-0 rounded-lg object-cover"
                     />
                     <span className="min-w-0">
-                      <span className="block truncate">{i.name} × {i.qty}</span>
+                      <span className="block truncate">
+                        {i.name} × {i.qty}
+                      </span>
                       {i.variant && <span className="text-muted-foreground">{i.variant}</span>}
                     </span>
                   </span>
@@ -1051,7 +1207,10 @@ function CouponsAdmin() {
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div className="space-y-3">
         {coupons.map((c) => (
-          <div key={c.code} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-4">
+          <div
+            key={c.code}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-4"
+          >
             <div>
               <p className="font-semibold">{c.code}</p>
               <p className="text-xs text-muted-foreground">
@@ -1097,7 +1256,14 @@ function CouponsAdmin() {
             label: draft.label || `${draft.value}${draft.type === "percent" ? "%" : "₹"} off`,
           });
           toast.success("Coupon saved");
-          setDraft({ code: "", type: "percent", value: 10, minOrder: 499, label: "", active: true });
+          setDraft({
+            code: "",
+            type: "percent",
+            value: 10,
+            minOrder: 499,
+            label: "",
+            active: true,
+          });
         }}
         className="h-fit rounded-2xl border bg-card p-5"
       >
@@ -1281,7 +1447,9 @@ function ImagesEditor({
     const failures: string[] = [];
     const selectedFiles = Array.from(files);
     if (selectedFiles.length > remainingSlots) {
-      toast.error(`Only ${remainingSlots} more photo${remainingSlots === 1 ? "" : "s"} can be added`);
+      toast.error(
+        `Only ${remainingSlots} more photo${remainingSlots === 1 ? "" : "s"} can be added`,
+      );
     }
 
     try {
@@ -1296,12 +1464,12 @@ function ImagesEditor({
         }
 
         try {
-        const image = await compressImage(f);
-        const result = await adminApiRequest<{ url: string }>("/images", {
-          method: "POST",
-          body: JSON.stringify({ image }),
-        });
-        added.push(result.url);
+          const image = await compressImage(f);
+          const result = await adminApiRequest<{ url: string }>("/images", {
+            method: "POST",
+            body: JSON.stringify({ image }),
+          });
+          added.push(result.url);
         } catch (error) {
           failures.push(`${f.name}: ${error instanceof Error ? error.message : "upload failed"}`);
         }
@@ -1332,7 +1500,10 @@ function ImagesEditor({
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
         {list.map((src, i) => (
-          <div key={i} className="relative overflow-hidden rounded-lg border border-border bg-muted">
+          <div
+            key={i}
+            className="relative overflow-hidden rounded-lg border border-border bg-muted"
+          >
             <StoreProductImage
               src={src}
               category={category}
@@ -1345,9 +1516,32 @@ function ImagesEditor({
               </span>
             )}
             <div className="absolute inset-x-0 bottom-0 flex justify-between gap-1 bg-background/90 p-1 text-xs">
-              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="rounded px-1.5 disabled:opacity-30" aria-label="Move left">←</button>
-              <button type="button" onClick={() => onChange(list.filter((_, k) => k !== i))} className="rounded px-1.5 text-destructive" aria-label="Remove photo">Remove</button>
-              <button type="button" onClick={() => move(i, 1)} disabled={i === list.length - 1} className="rounded px-1.5 disabled:opacity-30" aria-label="Move right">→</button>
+              <button
+                type="button"
+                onClick={() => move(i, -1)}
+                disabled={i === 0}
+                className="rounded px-1.5 disabled:opacity-30"
+                aria-label="Move left"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange(list.filter((_, k) => k !== i))}
+                className="rounded px-1.5 text-destructive"
+                aria-label="Remove photo"
+              >
+                Remove
+              </button>
+              <button
+                type="button"
+                onClick={() => move(i, 1)}
+                disabled={i === list.length - 1}
+                className="rounded px-1.5 disabled:opacity-30"
+                aria-label="Move right"
+              >
+                →
+              </button>
             </div>
           </div>
         ))}
@@ -1369,7 +1563,12 @@ function ImagesEditor({
         )}
       </div>
       <div className="flex gap-2">
-        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="…or paste an image link" className="input-base flex-1" />
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="…or paste an image link"
+          className="input-base flex-1"
+        />
         <button
           type="button"
           className="rounded-md border border-border px-3 text-sm"
@@ -1382,7 +1581,9 @@ function ImagesEditor({
           Add
         </button>
       </div>
-      <p className="text-xs text-muted-foreground">Up to 8 photos. Photos are resized automatically.</p>
+      <p className="text-xs text-muted-foreground">
+        Up to 8 photos. Photos are resized automatically.
+      </p>
     </div>
   );
 }
