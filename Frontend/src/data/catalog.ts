@@ -19,7 +19,7 @@ export const CATEGORIES: Category[] = [
     slug: "pipe-cleaner-supplies",
     name: "Pipe Cleaner Supplies",
     tagline: "Premium craft essentials for floral creations",
-    image: "cat-flowers",
+    image: "category-pipe-cleaner-supplies",
     subcategories: [
       "8mm Premium Quality Pipe Cleaners",
       "Floral Sticks",
@@ -33,7 +33,7 @@ export const CATEGORIES: Category[] = [
     slug: "ready-bouquets",
     name: "Ready Bouquets",
     tagline: "Finished floral arrangements for celebrations",
-    image: "cat-cakes",
+    image: "category-ready-bouquets",
     subcategories: [
       "Small Bouquets",
       "Medium Bouquets",
@@ -44,7 +44,7 @@ export const CATEGORIES: Category[] = [
     slug: "diy-flower-kits",
     name: "DIY Flower Kits",
     tagline: "Everything needed to make your own bouquet",
-    image: "cat-plants",
+    image: "category-diy-flower-kits",
     subcategories: [
       "Pipe Cleaner Bouquets",
       "Ribbon Bouquets",
@@ -54,7 +54,7 @@ export const CATEGORIES: Category[] = [
     slug: "home-decor",
     name: "Home Decor",
     tagline: "Decor accents for gifting and styling",
-    image: "cat-gifts",
+    image: "category-home-decor",
     subcategories: [
       "Pots",
       "Lamps",

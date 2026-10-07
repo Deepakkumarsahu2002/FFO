@@ -4,7 +4,13 @@
  * Cloudinary later only means replacing the values here (or pointing `resolveImage`
  * at a CDN base URL).
  */
-import heroBouquet from "@/assets/hero-bouquet.jpg";
+import heroBanner1 from "@/assets/Hero Banner1.png";
+import heroBanner2 from "@/assets/Hero Banner2.png";
+import heroBanner3 from "@/assets/Herom Banner3.png";
+import categoryPipeCleaner from "@/assets/Pastel Pipe Cleaner Craft Supply Flatlay.png";
+import categoryBouquets from "@/assets/Dreamy Pastel Handmade Flower Bouquets.png";
+import categoryDiyKits from "@/assets/DIY Flower Kit Craft Display.png";
+import categoryHomeDecor from "@/assets/Cozy Chenille Flower Shop Display.png";
 import catFlowers from "@/assets/cat-flowers.jpg";
 import catCakes from "@/assets/cat-cakes.jpg";
 import catPlants from "@/assets/cat-plants.jpg";
@@ -14,7 +20,14 @@ import catCombo from "@/assets/cat-combo.jpg";
 import promoBanner from "@/assets/promo-banner.jpg";
 
 export const IMAGES = {
-  "hero-bouquet": heroBouquet,
+  "hero-bouquet": heroBanner1,
+  "hero-banner-1": heroBanner1,
+  "hero-banner-2": heroBanner2,
+  "hero-banner-3": heroBanner3,
+  "category-pipe-cleaner-supplies": categoryPipeCleaner,
+  "category-ready-bouquets": categoryBouquets,
+  "category-diy-flower-kits": categoryDiyKits,
+  "category-home-decor": categoryHomeDecor,
   "cat-flowers": catFlowers,
   "cat-cakes": catCakes,
   "cat-plants": catPlants,
@@ -37,13 +50,13 @@ export function resolveImage(key: ImageKey): string {
 export function productImageFallback(category: string): string {
   switch (category) {
     case "pipe-cleaner-supplies":
-      return IMAGES["cat-flowers"];
+      return IMAGES["category-pipe-cleaner-supplies"];
     case "ready-bouquets":
-      return IMAGES["hero-bouquet"];
+      return IMAGES["category-ready-bouquets"];
     case "diy-flower-kits":
-      return IMAGES["cat-combo"];
+      return IMAGES["category-diy-flower-kits"];
     case "home-decor":
-      return IMAGES["cat-plants"];
+      return IMAGES["category-home-decor"];
     default:
       return IMAGES["cat-gifts"];
   }

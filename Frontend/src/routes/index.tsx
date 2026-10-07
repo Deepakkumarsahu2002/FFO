@@ -53,19 +53,16 @@ const COLLECTIONS = [
 
 const HERO_SLIDES = [
   {
-    key: "hero-bouquet" as const,
-    eyebrow: "Signature floral picks",
-    title: "Fresh arrangements for everyday celebrations",
+    key: "hero-banner-1" as const,
+    title: "Handmade bouquets for every occasion",
   },
   {
-    key: "cat-combo" as const,
-    eyebrow: "Best value bundles",
-    title: "Thoughtful gift combos made for quick gifting",
+    key: "hero-banner-2" as const,
+    title: "Colorful handmade blooms for your home",
   },
   {
-    key: "cat-plants" as const,
-    eyebrow: "Home styling favorites",
-    title: "Decor accents and greenery that elevate the space",
+    key: "hero-banner-3" as const,
+    title: "Playful handmade keepsakes and gifts",
   },
 ];
 
@@ -200,17 +197,8 @@ function Home() {
                         alt={slide.title}
                         width={1920}
                         height={1088}
-                        className="aspect-[16/11] w-full object-cover"
+                        className="aspect-[3/2] w-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
-                      <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
-                        <span className="inline-flex rounded-full border border-white/30 bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm">
-                          {slide.eyebrow}
-                        </span>
-                        <h2 className="mt-3 max-w-sm font-display text-2xl font-bold leading-tight sm:text-3xl">
-                          {slide.title}
-                        </h2>
-                      </div>
                     </div>
                   </CarouselItem>
                 ))}
@@ -249,12 +237,12 @@ function Home() {
               params={{ slug: c.slug }}
               className="group flex w-24 shrink-0 flex-col items-center gap-2 sm:w-auto"
             >
-              <span className="overflow-hidden rounded-full border-2 border-transparent p-1 transition-colors group-hover:border-primary">
+              <span className="size-20 shrink-0 overflow-hidden rounded-full border-2 border-transparent transition-colors group-hover:border-primary sm:size-24">
                 <img
                   src={IMAGES[c.image]}
                   alt={c.name}
                   loading="lazy"
-                  className="size-20 rounded-full object-cover sm:size-24"
+                  className="size-full scale-[1.08] rounded-full object-cover transition-transform duration-300 group-hover:scale-[1.12]"
                 />
               </span>
               <span className="text-center text-xs font-semibold sm:text-sm">{c.name}</span>
