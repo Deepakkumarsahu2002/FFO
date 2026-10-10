@@ -4,13 +4,13 @@
  * Cloudinary later only means replacing the values here (or pointing `resolveImage`
  * at a CDN base URL).
  */
-import heroBanner1 from "@/assets/Hero Banner1.png";
-import heroBanner2 from "@/assets/Hero Banner2.png";
-import heroBanner3 from "@/assets/Herom Banner3.png";
-import categoryPipeCleaner from "@/assets/Pastel Pipe Cleaner Craft Supply Flatlay.png";
-import categoryBouquets from "@/assets/Dreamy Pastel Handmade Flower Bouquets.png";
-import categoryDiyKits from "@/assets/DIY Flower Kit Craft Display.png";
-import categoryHomeDecor from "@/assets/Cozy Chenille Flower Shop Display.png";
+import heroBanner1 from "@/assets/hero-banner-1.png";
+import heroBanner2 from "@/assets/hero-banner-2.png";
+import heroBanner3 from "@/assets/hero-banner-3.png";
+import categoryPipeCleaner from "@/assets/pastel-pipe-cleaner-flatlay.png";
+import categoryBouquets from "@/assets/dreamy-pastel-bouquets.png";
+import categoryDiyKits from "@/assets/diy-flower-kit-display.png";
+import categoryHomeDecor from "@/assets/cozy-chenille-flower-display.png";
 import catFlowers from "@/assets/cat-flowers.jpg";
 import catCakes from "@/assets/cat-cakes.jpg";
 import catPlants from "@/assets/cat-plants.jpg";
