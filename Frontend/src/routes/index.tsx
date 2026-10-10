@@ -228,24 +228,46 @@ function Home() {
       </section>
 
       {/* Quick categories */}
-      <section className="container-x py-8">
-        <div className="hide-scrollbar flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-6">
+      <section className="container-x py-10 sm:py-12">
+        <div className="mb-6 flex items-end justify-between gap-4 sm:mb-8">
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary/75">
+              Made to make moments bloom
+            </p>
+            <h2 className="section-title text-2xl sm:text-3xl">Shop by category</h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Find something lovely for every kind of moment.
+            </p>
+          </div>
+          <span className="mb-1 flex shrink-0 items-center gap-1 text-xs font-medium text-primary/70 sm:hidden">
+            Swipe to explore <ArrowRight className="size-3.5" />
+          </span>
+        </div>
+        <div className="hide-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-3 sm:mx-0 sm:grid sm:grid-cols-4 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0">
           {CATEGORIES.map((c) => (
             <Link
               key={c.slug}
               to="/category/$slug"
               params={{ slug: c.slug }}
-              className="group flex w-24 shrink-0 flex-col items-center gap-2 sm:w-auto"
+              className="group flex w-36 shrink-0 snap-start flex-col items-center rounded-2xl border border-primary/5 bg-white/70 px-3 py-5 text-center shadow-[0_4px_18px_rgba(72,34,30,0.035)] transition duration-300 hover:-translate-y-1 hover:border-primary/15 hover:bg-white hover:shadow-card focus-visible:border-primary/20 sm:w-auto sm:px-4 sm:py-6"
             >
-              <span className="size-20 shrink-0 overflow-hidden rounded-full border-2 border-transparent transition-colors group-hover:border-primary sm:size-24">
-                <img
-                  src={IMAGES[c.image]}
-                  alt={c.name}
-                  loading="lazy"
-                  className="size-full scale-[1.08] rounded-full object-cover transition-transform duration-300 group-hover:scale-[1.12]"
-                />
+              <span className="relative mb-1 size-24 shrink-0 rounded-full bg-gradient-to-br from-primary/35 via-[#efc7a1] to-primary/15 p-[3px] shadow-[0_5px_16px_rgba(99,35,47,0.13)] transition duration-300 group-hover:scale-[1.04] group-hover:shadow-[0_8px_22px_rgba(99,35,47,0.2)] sm:size-28">
+                <span className="block size-full overflow-hidden rounded-full border-[3px] border-white bg-cream">
+                  <img
+                    src={IMAGES[c.image]}
+                    alt=""
+                    loading="lazy"
+                    className="size-full rounded-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                </span>
               </span>
-              <span className="text-center text-xs font-semibold sm:text-sm">{c.name}</span>
+              <span className="mt-1 flex min-h-10 items-center justify-center gap-1 font-display text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary sm:text-base">
+                {c.name}
+                <ArrowRight className="size-3.5 shrink-0 text-primary/60 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+              </span>
+              <span className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                {c.tagline}
+              </span>
             </Link>
           ))}
         </div>
